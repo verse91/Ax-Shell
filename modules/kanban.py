@@ -196,7 +196,6 @@ class KanbanColumn(Gtk.Frame):
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.listbox = Gtk.ListBox()
         self.listbox.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.listbox.connect("size-allocate", self.on_size_allocate)
         
         self.add_btn = Gtk.Button(name="kanban-btn-add", child=Label(name="kanban-btn-label", markup=icons.add))
         header = CenterBox(name="kanban-header", center_children=[Label(name="column-header", label=self.title)], end_children=[self.add_btn])
@@ -225,10 +224,6 @@ class KanbanColumn(Gtk.Frame):
         self.listbox.connect("drag-motion", self.on_drag_motion)
         self.listbox.connect("drag-leave", self.on_drag_leave)
 
-    def on_size_allocate(self, widget, allocation):
-        adj = self.scroller.get_vadjustment()
-        adj.set_value(adj.get_upper())
-
     def on_add_clicked(self, button):
         editor = InlineEditor()
         row = Gtk.ListBoxRow(name="kanban-row")
@@ -248,8 +243,14 @@ class KanbanColumn(Gtk.Frame):
         def on_canceled(editor):
             row.destroy()
 
+        def scroll_to_bottom():
+            adj = self.scroller.get_vadjustment()
+            adj.set_value(adj.get_upper())
+
         editor.connect('confirmed', on_confirmed)
         editor.connect('canceled', on_canceled)
+
+        GLib.idle_add(scroll_to_bottom) # ensure this is called after row is loaded
 
     def add_note(self, text, suppress_signal=False):
         note = KanbanNote(text)
