@@ -196,6 +196,7 @@ class KanbanColumn(Gtk.Frame):
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.listbox = Gtk.ListBox()
         self.listbox.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.listbox.connect("size-allocate", self.on_size_allocate)
         
         self.add_btn = Gtk.Button(name="kanban-btn-add", child=Label(name="kanban-btn-label", markup=icons.add))
         header = CenterBox(name="kanban-header", center_children=[Label(name="column-header", label=self.title)], end_children=[self.add_btn])
@@ -203,12 +204,12 @@ class KanbanColumn(Gtk.Frame):
         
         self.add_btn.connect("clicked", self.on_add_clicked)
         
-        scrolled = Gtk.ScrolledWindow(name="kanban-scroll")
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scrolled.add(self.listbox)
-        scrolled.set_vexpand(True)
+        self.scroller = Gtk.ScrolledWindow(name="kanban-scroll")
+        self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.scroller.add(self.listbox)
+        self.scroller.set_vexpand(True)
         
-        self.box.pack_start(scrolled, True, True, 0)
+        self.box.pack_start(self.scroller, True, True, 0)
         self.box.pack_start(self.add_btn, False, False, 0)
         self.add(self.box)
         self.show_all()
@@ -223,6 +224,10 @@ class KanbanColumn(Gtk.Frame):
         self.listbox.connect("drag-data-received", self.on_drag_data_received)
         self.listbox.connect("drag-motion", self.on_drag_motion)
         self.listbox.connect("drag-leave", self.on_drag_leave)
+
+    def on_size_allocate(self, widget, allocation):
+        adj = self.scroller.get_vadjustment()
+        adj.set_value(adj.get_upper())
 
     def on_add_clicked(self, button):
         editor = InlineEditor()
