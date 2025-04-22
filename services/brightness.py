@@ -1,111 +1,155 @@
 import os
-
-from fabric.core.service import Property, Service, Signal
-from fabric.utils import exec_shell_command_async, monitor_file
+import subprocess
+import re
+from threading import Lock
 from gi.repository import GLib
 from loguru import logger
-
+from fabric.core.service import Property, Service, Signal
+from fabric.utils import exec_shell_command_async, monitor_file
 import utils.functions as helpers
-from utils.colors import Colors
-
-
-def exec_brightnessctl_async(args: str):
-    if not helpers.executable_exists("brightnessctl"):
-        logger.error(f"{Colors.ERROR}Command brightnessctl not found")
-
-    exec_shell_command_async(f"brightnessctl {args}", lambda _: None)
-
-
-# Discover screen backlight device
-try:
-    screen_device = os.listdir("/sys/class/backlight")
-    screen_device = screen_device[0] if screen_device else ""
-except FileNotFoundError:
-    logger.error(
-        f"{Colors.ERROR}No backlight devices found, brightness control disabled"
-    )
-    screen_device = ""
-
 
 class Brightness(Service):
-    """Service to manage screen brightness levels."""
+    """Service to manage screen brightness levels using either ddcutil or brightnessctl backends."""
 
     instance = None
+    DDCUTIL_PARAMS = "--disable-dynamic-sleep --sleep-multiplier=0.05 --noverify"
 
     @staticmethod
     def get_initial():
+        """Singleton pattern implementation to get the Brightness service instance."""
         if Brightness.instance is None:
             Brightness.instance = Brightness()
-
         return Brightness.instance
 
     @Signal
-    def screen(self, value: int) -> None:
-        """Signal emitted when screen brightness changes."""
-        # Implement as needed for your application
+    def screen(self, value: int) -> None: 
+        """Signal emitted when screen brightness changes (value: current brightness level)."""
+        pass
 
-    def __init__(self, **kwargs):
+    def __init__(self, backend=None, **kwargs):
+        """Initialize brightness service with automatic backend detection."""
         super().__init__(**kwargs)
+        self._pending_brightness = None  # Pending brightness value to apply
+        self._brightness_timer_id = None  # GLib timeout ID for delayed brightness changes
+        self._lock = Lock()  # Thread lock for thread-safe operations
+        self._last_brightness = -1  # Cache for last known brightness value
+        self.backend = self._detect_backend(backend)  # Detected backend (ddcutil/brightnessctl)
+        
+        if self.backend:
+            # Maximum brightness value depends on backend
+            self.max_screen = 100 if self.backend == "ddcutil" else self._read_max_brightness()
+            
+            # For brightnessctl, monitor brightness file changes
+            if self.backend == "brightnessctl":
+                monitor_file(f"/sys/class/backlight/{self._get_screen_device()}/brightness").connect(
+                    "changed", lambda _, f, *a: self._handle_brightness_change(f))
 
-        # Path for screen backlight control
-        self.screen_backlight_path = f"/sys/class/backlight/{screen_device}"
+    def _handle_brightness_change(self, file):
+        """Handler for brightness change events from monitored file."""
+        new_value = round(int(file.load_bytes()[0].get_data()))
+        if new_value != self._last_brightness:
+            self._last_brightness = new_value
+            self.emit("screen", new_value)
 
-        # Initialize maximum brightness level
-        self.max_screen = self.do_read_max_brightness(self.screen_backlight_path)
+    def _detect_backend(self, backend):
+        """Detect available brightness control backend (ddcutil or brightnessctl)."""
+        if backend: 
+            return backend
+            
+        # Check for ddcutil first
+        if helpers.executable_exists("ddcutil"):
+            bus = self._detect_ddcutil_bus()
+            if bus != -1:
+                self.ddcutil_bus = bus
+                return "ddcutil"
+                
+        # Fallback to brightnessctl if available
+        if helpers.executable_exists("brightnessctl") and self._get_screen_device():
+            return "brightnessctl"
+            
+        logger.error("No available brightness backend")
+        return None
 
-        if screen_device == "":
-            return
+    def _get_screen_device(self):
+        """Get the first available backlight device from sysfs."""
+        try: 
+            return os.listdir("/sys/class/backlight")[0]
+        except: 
+            return ""
 
-        # Monitor screen brightness file
-        self.screen_monitor = monitor_file(f"{self.screen_backlight_path}/brightness")
+    def _detect_ddcutil_bus(self):
+        """Detect the I2C bus number for ddcutil communication."""
+        try:
+            output = subprocess.check_output(["ddcutil", "detect"], text=True)
+            match = re.search(r"I2C bus:\s*/dev/i2c-(\d+)", output)
+            return int(match.group(1)) if match else -1
+        except: 
+            return -1
 
-        self.screen_monitor.connect(
-            "changed",
-            lambda _, file, *args: self.emit(
-                "screen",
-                round(int(file.load_bytes()[0].get_data())),
-            ),
-        )
-
-        # Log the initialization of the service
-        logger.info(
-            f"{Colors.INFO}Brightness service initialized for device: {screen_device}"
-        )
-
-    def do_read_max_brightness(self, path: str) -> int:
-        # Reads the maximum brightness value from the specified path.
-        max_brightness_path = os.path.join(path, "max_brightness")
-        if os.path.exists(max_brightness_path):
-            with open(max_brightness_path) as f:
+    def _read_max_brightness(self):
+        """Read maximum brightness value from sysfs."""
+        try:
+            with open(f"/sys/class/backlight/{self._get_screen_device()}/max_brightness") as f:
                 return int(f.readline())
-        return -1  # Return -1 if file doesn't exist, indicating an error.
+        except: 
+            return -1
 
     @Property(int, "read-write")
-    def screen_brightness(self) -> int:
-        # Property to get or set the screen brightness.
-        brightness_path = os.path.join(self.screen_backlight_path, "brightness")
-        if os.path.exists(brightness_path):
-            with open(brightness_path) as f:
-                return int(f.readline())
-        logger.warning(
-            f"{Colors.WARNING}Brightness file does not exist: {brightness_path}"
-        )
-        return -1  # Return -1 if file doesn't exist, indicating error.
+    def screen_brightness(self):
+        """Get current screen brightness level (0-100%)."""
+        if self.backend == "brightnessctl":
+            try:
+                with open(f"/sys/class/backlight/{self._get_screen_device()}/brightness") as f:
+                    return int(f.readline())
+            except: 
+                return -1
+        elif self.backend == "ddcutil":
+            if self._last_brightness != -1: 
+                return self._last_brightness
+            try:
+                cmd = f"ddcutil --bus {self.ddcutil_bus} {self.DDCUTIL_PARAMS} getvcp 10"
+                output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL, timeout=1)
+                value = int(re.search(r"current value\s*=\s*(\d+)", output).group(1))
+                self._last_brightness = value
+                return value
+            except: 
+                return self._last_brightness if self._last_brightness != -1 else 50
 
     @screen_brightness.setter
     def screen_brightness(self, value: int):
-        # Setter for screen brightness property.
-        if not (0 <= value <= self.max_screen):
+        """Set new screen brightness level (0-100%)."""
+        with self._lock:
             value = max(0, min(value, self.max_screen))
+            if value == self._last_brightness: 
+                return
+            self._pending_brightness = value
+            if self._brightness_timer_id: 
+                GLib.source_remove(self._brightness_timer_id)
+            self._brightness_timer_id = GLib.timeout_add(100, self._apply_brightness)
+
+    def _apply_brightness(self):
+        """Apply pending brightness change with debounce delay."""
+        with self._lock:
+            if not self._pending_brightness: 
+                return False
+            value = self._pending_brightness
+            self._pending_brightness = None
+            self._brightness_timer_id = None
 
         try:
-            exec_brightnessctl_async(f"--device '{screen_device}' set {value}")
+            if self.backend == "brightnessctl":
+                exec_shell_command_async(f"brightnessctl --device '{self._get_screen_device()}' set {value}")
+            elif self.backend == "ddcutil":
+                exec_shell_command_async(
+                    f"ddcutil --bus {self.ddcutil_bus} {self.DDCUTIL_PARAMS} --terse setvcp 10 {value}",
+                    lambda *_: self._update_brightness_cache(value))
+            self._last_brightness = value
             self.emit("screen", int((value / self.max_screen) * 100))
-            logger.info(
-                f"{Colors.INFO}Set screen brightness to {value} "
-                f"(out of {self.max_screen})"
-            )
-        except GLib.Error as e:
-            logger.error(f"{Colors.ERROR}Error setting screen brightness: {e.message}")
         except Exception as e:
-            logger.exception(f"Unexpected error setting screen brightness: {e}")
+            logger.error(f"Error setting brightness: {e}")
+        return False
+
+    def _update_brightness_cache(self, value):
+        """Update cached brightness value after successful change."""
+        self._last_brightness = value
+        self.emit("screen", int((value / self.max_screen) * 100))
