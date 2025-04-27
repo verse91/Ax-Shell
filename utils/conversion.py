@@ -77,49 +77,20 @@ class Units():
 
         self.STORAGE_TYPE_CHART: dict[str, float] = {
             "bit": 1,
-            "b": 1,
             "byte": 8,
             "B": 8,
-            "kilobit": 1000,
-            "kb": 1000,
-            "kibibit": 1024,
-            "kib": 1024,
-            "kilobyte": 8000,
-            "kB": 8000,
-            "kibibyte": 8192,
-            "KiB": 8192,
-            "megabit": 1000000,
-            "Mb": 1000000,
-            "megabyte": 8000000,
-            "MB": 8000000,
-            "mebibit": 1048576,
-            "Mib": 1048576,
-            "mebibyte": 8388608,
-            "MiB": 8388608,
-            "gigabit": 1073741824,
-            "Gb": 1073741824,
+            "kilobyte": 8192,
+            "KB": 8192,
+            "megabyte": 8388608,
+            "MB": 8388608,
             "gigabyte": 8589934592,
             "GB": 8589934592,
-            "gibibit": 1073741824,
-            "Gib": 1073741824,
-            "gibibyte": 1099511627776,
-            "GiB": 1099511627776,
-            "terabit": 1000000000000,
-            "Tb": 1000000000000,
             "terabyte": 8796093022208,
             "TB": 8796093022208,
-            "tebibit": 1099511627776,
-            "Tib": 1099511627776,
-            "tebibyte": 1125899906842624,
-            "TiB": 1125899906842624,
-            "petabit": 1000000000000000,
-            "Pb": 1000000000000000,
             "petabyte": 9007199254740992,
             "PB": 9007199254740992,
-            "pebibit": 1125899906842624,
-            "Pib": 1125899906842624,
-            "pebibyte": 1152921504606846976,
-            "PiB": 1152921504606846976,
+            "exabyte": 9223372036854775808,
+            "EB": 9223372036854775808,
         }
 
         self.currency_converter = CurrencyConverter()
@@ -179,7 +150,6 @@ class Conversion():
         self.units = Units()
 
     def convert_weight(self, value, from_type, to_type):
-        from_type, to_type = self.strip_s(from_type), self.strip_s(to_type)
         if from_type == to_type:
             return value
 
@@ -214,7 +184,6 @@ class Conversion():
     
 
     def convert_length(self, value, from_type, to_type):
-        from_type, to_type = self.strip_s(from_type), self.strip_s(to_type)
         if from_type == to_type:
             return value
         
@@ -229,7 +198,6 @@ class Conversion():
         return value * (self.units.LENGTH_CHART[from_type] / self.units.LENGTH_CHART[to_type])
         
     def convert_time(self, value, from_type, to_type):
-        from_type, to_type = self.strip_s(from_type), self.strip_s(to_type)
         if from_type == to_type:
             return value
         
@@ -245,7 +213,6 @@ class Conversion():
         return value * (self.units.TIME_CHART[from_type] / self.units.TIME_CHART[to_type])
     
     def convert_liquid_volume(self, value, from_type, to_type):
-        from_type, to_type = self.strip_s(from_type), self.strip_s(to_type)
         if from_type == to_type:
             return value
         
@@ -260,7 +227,6 @@ class Conversion():
         return value * (self.units.LIQUID_VOLUME_CHART[from_type] / self.units.LIQUID_VOLUME_CHART[to_type])
     
     def convert_storage_type(self, value, from_type, to_type):
-        from_type, to_type = self.strip_s(from_type), self.strip_s(to_type)
         if from_type == to_type:
             return value
         
@@ -293,13 +259,14 @@ class Conversion():
         else:
             raise ValueError(f"Unsupported conversion: {from_type} to {to_type}")
         
-    def strip_s(self, type:str):
+    def clean_type(self, type:str):
         """
         Strips the 's' from the end of the type if it exists.
         """
-        if type.endswith("s"):
-            return type[:-1]
+        if type in self.units.currency_converter.currencies:
+            return type.upper()
+        if type.endswith("s") and type is not "celsius":
+            if type[:-1] in self.units.STORAGE_TYPE_CHART:
+                return type[:-1]
+            return type[:-1].lower()
         return type
-        
-            
-

@@ -549,8 +549,8 @@ class AppLauncher(Box):
             return
         amount, from_conversion, _, to_conversion = currencies
         amount = float(amount)
-        from_conversion = self.converter.capitalize(from_conversion)
-        to_conversion = self.converter.capitalize(to_conversion)
+        from_conversion = self.converter.clean_type(from_conversion)
+        to_conversion = self.converter.clean_type(to_conversion)
         result = self.converter.convert(amount, from_conversion, to_conversion)
         result_str = f"{result:.2f} {to_conversion}"
         self.conversion_history.insert(0, f"{text} => {result_str}")
