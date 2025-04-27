@@ -17,7 +17,7 @@ import re
 import math
 import numpy as np
 import subprocess
-from services.conversion import Conversion
+from utils.conversion import Conversion
 from modules.dock import Dock  # Import the Dock class
 
 class AppLauncher(Box):
