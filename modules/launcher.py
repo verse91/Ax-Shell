@@ -143,7 +143,7 @@ class AppLauncher(Box):
             self.update_calculator_viewport()
             return
         if query.startswith(";"):
-            # In calculator mode, update history view once (not per keystroke)
+            # In conversion mode, update history view once (not per keystroke)
             self.update_conversion_viewport()
             return
         remove_handler(self._arranger_handler) if self._arranger_handler else None
@@ -335,7 +335,7 @@ class AppLauncher(Box):
                 self.move_selection(-1)
                 return True
             elif event.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
-                # In calculator mode, if a history item is highlighted:
+                # In conversion mode, if a history item is highlighted:
                 if self.selected_index != -1 and self.selected_index < len(self.conversion_history):
                     if event.state & Gdk.ModifierType.SHIFT_MASK:
                         # Shift+Enter deletes the selected calculator history item
@@ -543,16 +543,17 @@ class AppLauncher(Box):
         if not expr:
             return
 
-        currencies = expr.split(" ")
-        if len(currencies) != 4:
-            print("Invalid conversion expression format. Expected: <amount> <from_conversion> in/to <to_conversion>")
-            return
-        amount, from_conversion, _, to_conversion = currencies
-        amount = float(amount)
-        from_conversion = self.converter.clean_type(from_conversion)
-        to_conversion = self.converter.clean_type(to_conversion)
-        result = self.converter.convert(amount, from_conversion, to_conversion)
-        result_str = f"{result:.2f} {to_conversion}"
+        try:
+            result_value, result_type = self.converter.parse_input_and_convert(expr)
+            if result_type is None:
+                result_str = f"{result_value:.2f}"
+            else:
+                result_str = f"{result_value:.2f} {result_type}"
+        except:
+            result_str = "Error: Invalid conversion expression"
+        
+        # Format the result based on its type
+        
         self.conversion_history.insert(0, f"{text} => {result_str}")
         self.save_conversion_history()
         self.update_conversion_viewport()
