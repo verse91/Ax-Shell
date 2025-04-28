@@ -93,8 +93,6 @@ class Units():
             "EB": 9223372036854775808,
         }
 
-        self.currency_converter = CurrencyConverter()
-
         self.TEMPERATURE_CHART = {
             "celsius": (lambda v: v + 273.15, lambda v: v - 273.15),
             "c": (lambda v: v + 273.15, lambda v: v - 273.15),
@@ -113,6 +111,8 @@ class Units():
             "min": 60,
             "hour": 3600,
             "h": 3600,
+            "milisecond": 1e-3,
+            "ms": 1e-3,
             "day": 86400,
             "d": 86400,
             "week": 604800,
@@ -124,6 +124,10 @@ class Units():
             "yr": 31536000,  # Approximation (365 days)
             "decade": 315360000,  # Approximation (10 years)
             "dec": 315360000,  # Approximation (10 years)
+            "century": 3153600000,  # Approximation (100 years)
+            "cent": 3153600000,  # Approximation (100 years)
+            "millennium": 31536000000,  # Approximation (1000 years)
+            "millenia": 31536000000,  # Approximation (1000 years)
         }
 
         self.LIQUID_VOLUME_CHART: dict[str, float] = {
@@ -176,6 +180,7 @@ class Units():
             "fps": 0.3048,
             "knot": 0.514444,
         }
+
         self.PRESSURE_CHART: dict[str, float] = {
             "pascal": 1,
             "Pa": 1,
@@ -185,6 +190,7 @@ class Units():
             "mmHg": 133.322,
             "psi": 6894.76,
         }
+
         self.FORCE_CHART: dict[str, float] = {
             "newton": 1,
             "N": 1,
@@ -194,6 +200,7 @@ class Units():
             "lbf": 4.44822,
             "dyne": 1e-5,
         }
+
         self.POWER_CHART: dict[str, float] = {
             "watt": 1,
             "W": 1,
@@ -204,54 +211,58 @@ class Units():
             "megawatt": 1e6,
             "MW": 1e6,
         }
-        self.ELECTRICAL_CHART: dict[str, dict[str, float]] = {
-            "voltage": {
-                "volt": 1,
-                "V": 1,
-                "millivolt": 1e-3,
-                "mV": 1e-3,
-                "kilovolt": 1000,
-                "kV": 1000,
-                "megavolt": 1e6,
-                "MV": 1e6,
-            },
-            "current": {
-                "ampere": 1,
-                "A": 1,
-                "milliampere": 1e-3,
-                "mA": 1e-3,
-                "microampere": 1e-6,
-                "μA": 1e-6,
-            },
-            "resistance": {
-                "ohm": 1,
-                "Ω": 1,
-                "kilohm": 1000,
-                "kΩ": 1000,
-                "megohm": 1e6,
-                "MΩ": 1e6,
-            },
-            "capacitance": {
-                "farad": 1,
-                "F": 1,
-                "millifarad": 1e-3,
-                "mF": 1e-3,
-                "microfarad": 1e-6,
-                "μF": 1e-6,
-                "nanofarad": 1e-9,
-                "nF": 1e-9,
-            },
-            "inductance": {
-                "henry": 1,
-                "H": 1,
-                "millihenry": 1e-3,
-                "mH": 1e-3,
-                "microhenry": 1e-6,
-                "μH": 1e-6,
-                "nanohenry": 1e-9,
-                "nH": 1e-9,
-            },
+
+        self.VOLTAGE_CHART: dict[str, float] = {
+            "volt": 1,
+            "V": 1,
+            "millivolt": 1e-3,
+            "mV": 1e-3,
+            "kilovolt": 1000,
+            "kV": 1000,
+            "megavolt": 1e6,
+            "MV": 1e6,
         }
+
+        self.CURRENT_CHART: dict[str, float] = {
+            "ampere": 1,
+            "A": 1,
+            "milliampere": 1e-3,
+            "mA": 1e-3,
+            "microampere": 1e-6,
+            "μA": 1e-6,
+        }
+
+        self.RESISTANCE_CHART: dict[str, float] = {
+            "ohm": 1,
+            "Ω": 1,
+            "kilohm": 1000,
+            "kΩ": 1000,
+            "megohm": 1e6,
+            "MΩ": 1e6,
+        }
+        
+        self.CAPACITANCE_CHART: dict[str, float] = {
+            "farad": 1,
+            "F": 1,
+            "millifarad": 1e-3,
+            "mF": 1e-3,
+            "microfarad": 1e-6,
+            "μF": 1e-6,
+            "nanofarad": 1e-9,
+            "nF": 1e-9,
+        }
+
+        self.INDUCTANCE_CHART: dict[str, float] = {
+            "henry": 1,
+            "H": 1,
+            "millihenry": 1e-3,
+            "mH": 1e-3,
+            "microhenry": 1e-6,
+            "μH": 1e-6,
+            "nanohenry": 1e-9,
+            "nH": 1e-9,
+        }
+
         self.FREQUENCY_CHART: dict[str, float] = {
             "hertz": 1,
             "Hz": 1,
@@ -262,6 +273,7 @@ class Units():
             "gigahertz": 1e9,
             "GHz": 1e9,
         }
+
         self.LUMINANCE_CHART: dict[str, float] = {
             "candela": 1,
             "cd": 1,
@@ -271,173 +283,78 @@ class Units():
             "lx": 1,
         }  
 
+        self.AREA_CHART: dict[str, float] = {
+            "square-meter": 1,
+            "m2": 1,
+            "square-kilometer": 1e6,
+            "km2": 1e6,
+            "hectare": 1e4,
+            "ha": 1e4,
+            "are": 1e2,
+            "a": 1e2,
+            "square-centimeter": 1e-4,
+            "cm2": 1e-4,
+            "square-millimeter": 1e-6,
+            "mm2": 1e-6,
+        }
+
+        self.currency_converter = CurrencyConverter()
+
 
 class Conversion():
     def __init__(self):
         self.units = Units()
-
-    def convert_weight(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-
-        if to_type not in self.units.WEIGHT_CHART or from_type not in self.units.WEIGHT_CHART:
-            msg = (
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.WEIGHT_CHART.keys())}"
-            )
-            raise ValueError(msg)
-        return value * self.units.WEIGHT_CHART[to_type][0] * self.units.WEIGHT_CHART[from_type][1]
     
-    def convert_currency(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-        return self.units.currency_converter.convert(value, from_type, to_type)
-     
-    def convert_temperature(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-
-        if from_type not in self.units.TEMPERATURE_CHART or to_type not in self.units.TEMPERATURE_CHART:
-            raise ValueError(
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.TEMPERATURE_CHART.keys())}"
-            )
-
-        # Convert to Kelvin, then to the target scale
-        to_kelvin = self.units.TEMPERATURE_CHART[from_type][0]
-        from_kelvin = self.units.TEMPERATURE_CHART[to_type][1]
-        return from_kelvin(to_kelvin(value))
-
-    def convert_angle(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-
-        if from_type not in self.units.ANGLE_CHART or to_type not in self.units.ANGLE_CHART:
-            msg = (
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.ANGLE_CHART)}"
-            )
-            raise ValueError(msg)
-
-        # Convert to the target unit
-        return value * (self.units.ANGLE_CHART[from_type] / self.units.ANGLE_CHART[to_type])
-
-    def convert_length(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-        
-        if from_type not in self.units.LENGTH_CHART or to_type not in self.units.LENGTH_CHART:
-            msg = (
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.LENGTH_CHART)}"
-            )
-            raise ValueError(msg)
-        
-        # Convert to the target unit
-        return value * (self.units.LENGTH_CHART[from_type] / self.units.LENGTH_CHART[to_type])
-        
-    def convert_time(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-        
-        # Conversion factors relative to seconds (base unit)
-        if from_type not in self.units.TIME_CHART or to_type not in self.units.TIME_CHART:
-            msg = (
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.TIME_CHART)}"
-            )
-            raise ValueError(msg)
-
-        # Convert to the target unit
-        return value * (self.units.TIME_CHART[from_type] / self.units.TIME_CHART[to_type])
-    
-    def convert_liquid_volume(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-        
-        if from_type not in self.units.LIQUID_VOLUME_CHART or to_type not in self.units.LIQUID_VOLUME_CHART:
-            msg = (
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.LIQUID_VOLUME_CHART)}"
-            )
-            raise ValueError(msg)
-
-        # Convert to the target unit
-        return value * (self.units.LIQUID_VOLUME_CHART[from_type] / self.units.LIQUID_VOLUME_CHART[to_type])
-    
-    def convert_storage_type(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-        
-        if from_type not in self.units.STORAGE_TYPE_CHART or to_type not in self.units.STORAGE_TYPE_CHART:
-            msg = (
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.STORAGE_TYPE_CHART)}"
-            )
-            raise ValueError(msg)
-
-        # Convert to the target unit
-        return value * (self.units.STORAGE_TYPE_CHART[from_type] / self.units.STORAGE_TYPE_CHART[to_type])
-    
-    def convert_energy(self, value, from_type, to_type):
-        if from_type == to_type:
-            return value
-        
-        if from_type not in self.units.ENERGY_CHART or to_type not in self.units.ENERGY_CHART:
-            msg = (
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values are: {', '.join(self.units.ENERGY_CHART)}"
-            )
-            raise ValueError(msg)
-
-        # Convert to the target unit
-        return value * (self.units.ENERGY_CHART[from_type] / self.units.ENERGY_CHART[to_type])
-    
-    def convert_electrical(self, value, from_type, to_type, category):
+    def convert(self, value: float, from_type: str, to_type: str):
         """
-        Converts electrical units (voltage, current, resistance, capacitance, inductance).
+        Generalized conversion function that works with all types.
         """
-        if from_type == to_type:
-            return value
+        # List of all available charts
+        charts = {
+            "WEIGHT_CHART": self.units.WEIGHT_CHART,
+            "LENGTH_CHART": self.units.LENGTH_CHART,
+            "TEMPERATURE_CHART": self.units.TEMPERATURE_CHART,
+            "TIME_CHART": self.units.TIME_CHART,
+            "LIQUID_VOLUME_CHART": self.units.LIQUID_VOLUME_CHART,
+            "STORAGE_TYPE_CHART": self.units.STORAGE_TYPE_CHART,
+            "ANGLE_CHART": self.units.ANGLE_CHART,
+            "ENERGY_CHART": self.units.ENERGY_CHART,
+            "SPEED_CHART": self.units.SPEED_CHART,  
+            "PRESSURE_CHART": self.units.PRESSURE_CHART,
+            "FORCE_CHART": self.units.FORCE_CHART,
+            "POWER_CHART": self.units.POWER_CHART,
+            "VOLTAGE_CHART": self.units.VOLTAGE_CHART,
+            "CURRENT_CHART": self.units.CURRENT_CHART,
+            "RESISTANCE_CHART": self.units.RESISTANCE_CHART,
+            "CAPACITANCE_CHART": self.units.CAPACITANCE_CHART,
+            "INDUCTANCE_CHART": self.units.INDUCTANCE_CHART,
+            "FREQUENCY_CHART": self.units.FREQUENCY_CHART,
+            "LUMINANCE_CHART": self.units.LUMINANCE_CHART,
+            "AREA_CHART": self.units.AREA_CHART,
+        }
 
-        if category not in self.units.ELECTRICAL_CHART:
-            raise ValueError(f"Invalid category: {category}. Supported categories are: {', '.join(self.units.ELECTRICAL_CHART.keys())}")
+        # Check if the types exist in any chart
+        for chart_name, chart in charts.items():
+            if from_type in chart and to_type in chart:
+                # Handle temperature conversions separately (uses lambda functions)
+                if chart_name == "TEMPERATURE_CHART":
+                    if from_type == to_type:
+                        return value
+                    to_kelvin = chart[from_type][0]
+                    from_kelvin = chart[to_type][1]
+                    return from_kelvin(to_kelvin(value))
 
-        chart = self.units.ELECTRICAL_CHART[category]
+                # Handle other conversions (uses direct multiplication/division)
+                if from_type == to_type:
+                    return value
+                return value * (chart[from_type] / chart[to_type])
 
-        if from_type not in chart or to_type not in chart:
-            raise ValueError(
-                f"Invalid 'from_type' or 'to_type' value: {from_type!r}, {to_type!r}\n"
-                f"Supported values for {category} are: {', '.join(chart.keys())}"
-            )
+        # Handle currency conversion separately
+        if from_type in self.units.currency_converter.currencies and to_type in self.units.currency_converter.currencies:
+            return self.units.currency_converter.convert(value, from_type, to_type)
 
-        # Convert to the target unit
-        return value * (chart[from_type] / chart[to_type])
-    
-    
-
-    def convert(self, value:float, from_type:str, to_type:str):
-        # Determine the type of conversion based on the input types
-        if from_type in self.units.WEIGHT_CHART and to_type in self.units.WEIGHT_CHART:
-            return self.convert_weight(value, from_type, to_type)
-        elif from_type in self.units.LENGTH_CHART and to_type in self.units.LENGTH_CHART:
-            return self.convert_length(value, from_type, to_type)
-        elif from_type in self.units.TEMPERATURE_CHART and to_type in self.units.TEMPERATURE_CHART:
-            return self.convert_temperature(value, from_type, to_type)
-        elif from_type in self.units.TIME_CHART and to_type in self.units.TIME_CHART:
-            return self.convert_time(value, from_type, to_type)
-        elif from_type in self.units.LIQUID_VOLUME_CHART and to_type in self.units.LIQUID_VOLUME_CHART:
-            return self.convert_liquid_volume(value, from_type, to_type)
-        elif from_type in self.units.STORAGE_TYPE_CHART and to_type in self.units.STORAGE_TYPE_CHART:
-            return self.convert_storage_type(value, from_type, to_type)
-        elif from_type in self.units.currency_converter.currencies and to_type in self.units.currency_converter.currencies:
-            return self.convert_currency(value, from_type, to_type)
-        else:
-            for category, chart in self.units.ELECTRICAL_CHART.items():
-                if from_type in chart and to_type in chart:
-                    return self.convert_electrical(value, from_type, to_type, category)
-            
-            raise ValueError(f"Unsupported conversion: {from_type} to {to_type}")
+        # Raise an error if no valid conversion is found
+        raise ValueError(f"Unsupported conversion: {from_type} to {to_type}")
         
     def parse_input_and_convert(self, input:str):
         parts = input.split()
@@ -479,49 +396,3 @@ class Conversion():
                 return type[:-1]
             return type[:-1].lower()
         return type
-
-    def check_errors(self, value: float, from_type: str, to_type: str):
-        """
-        Generalized conversion function that works with all types.
-        """
-        # List of all available charts
-        charts = {
-            "WEIGHT_CHART": self.units.WEIGHT_CHART,
-            "LENGTH_CHART": self.units.LENGTH_CHART,
-            "TEMPERATURE_CHART": self.units.TEMPERATURE_CHART,
-            "TIME_CHART": self.units.TIME_CHART,
-            "LIQUID_VOLUME_CHART": self.units.LIQUID_VOLUME_CHART,
-            "STORAGE_TYPE_CHART": self.units.STORAGE_TYPE_CHART,
-            "ANGLE_CHART": self.units.ANGLE_CHART,
-            "ENERGY_CHART": self.units.ENERGY_CHART,
-            "SPEED_CHART": self.units.SPEED_CHART,  
-            "PRESSURE_CHART": self.units.PRESSURE_CHART,
-            "FORCE_CHART": self.units.FORCE_CHART,
-            "POWER_CHART": self.units.POWER_CHART,
-            "ELECTRICAL_CHART": self.units.ELECTRICAL_CHART,
-            "FREQUENCY_CHART": self.units.FREQUENCY_CHART,
-            "LUMINANCE_CHART": self.units.LUMINANCE_CHART,
-        }
-
-        # Check if the types exist in any chart
-        for chart_name, chart in charts.items():
-            if from_type in chart and to_type in chart:
-                # Handle temperature conversions separately (uses lambda functions)
-                if chart_name == "TEMPERATURE_CHART":
-                    if from_type == to_type:
-                        return value
-                    to_kelvin = chart[from_type][0]
-                    from_kelvin = chart[to_type][1]
-                    return from_kelvin(to_kelvin(value))
-
-                # Handle other conversions (uses direct multiplication/division)
-                if from_type == to_type:
-                    return value
-                return value * (chart[from_type] / chart[to_type])
-
-        # Handle currency conversion separately
-        if from_type in self.units.currency_converter.currencies and to_type in self.units.currency_converter.currencies:
-            return self.units.currency_converter.convert(value, from_type, to_type)
-
-        # Raise an error if no valid conversion is found
-        raise ValueError(f"Unsupported conversion: {from_type} to {to_type}")
