@@ -14,15 +14,16 @@ PACKAGES=(
   gnome-bluetooth-3.0
   gobject-introspection
   gpu-screen-recorder
-  grimblast
   hypridle
   hyprlock
   hyprpicker
+  hyprshot
   hyprsunset
   imagemagick
   libnotify
   matugen-bin
   noto-fonts-emoji
+  nvtop
   playerctl
   python-fabric-git
   python-ijson
@@ -42,7 +43,6 @@ PACKAGES=(
   webp-pixbuf-loader
   wl-clipboard
   wlinhibit
-  nvtop
 )
 
 # Prevent running as root

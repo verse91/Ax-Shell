@@ -8,6 +8,7 @@ import os
 import config.data as data
 import subprocess
 from loguru import logger
+import threading
 
 SCREENSHOT_SCRIPT = get_relative_path("../scripts/screenshot.sh")
 POMODORO_SCRIPT = get_relative_path("../scripts/pomodoro.sh")
@@ -56,6 +57,20 @@ class Toolbox(Box):
         self.btn_ssfull.set_can_focus(True) 
         self.btn_ssfull.connect("button-press-event", self.on_ssfull_click)
         self.btn_ssfull.connect("key-press-event", self.on_ssfull_key)
+
+        self.btn_sswindow = Button(  # New window screenshot button
+            name="toolbox-button",
+            child=Label(name="button-label", markup=icons.sswindow),
+            on_clicked=self.sswindow,
+            h_expand=False,
+            v_expand=False,
+            h_align="center",
+            v_align="center",
+        )
+        # Enable keyboard focus and connect events for window screenshot
+        self.btn_sswindow.set_can_focus(True)
+        self.btn_sswindow.connect("button-press-event", self.on_sswindow_click)
+        self.btn_sswindow.connect("key-press-event", self.on_sswindow_key)
 
         self.btn_screenrecord = Button(
             name="toolbox-button",
@@ -148,6 +163,7 @@ class Toolbox(Box):
 
         self.buttons = [
             self.btn_ssregion,
+            self.btn_sswindow,
             self.btn_ssfull,
             self.btn_screenshots_folder,
             Box(name="tool-sep", h_expand=False, v_expand=False, h_align="center", v_align="center"),
@@ -176,8 +192,11 @@ class Toolbox(Box):
         self.notch.close_notch()
 
     # Action methods
-    def ssfull(self, *args):
-        exec_shell_command_async(f"bash {SCREENSHOT_SCRIPT} p")
+    def ssfull(self, *args, mockup=False): # Added mockup argument
+        cmd = f"bash {SCREENSHOT_SCRIPT} p"
+        if mockup:
+            cmd += " mockup"
+        exec_shell_command_async(cmd)
         self.close_menu()
 
     def on_ssfull_click(self, button, event):
@@ -185,8 +204,7 @@ class Toolbox(Box):
             if event.button == 1:  # Left click
                 self.ssfull()
             elif event.button == 3:  # Right click
-                exec_shell_command_async(f"bash {SCREENSHOT_SCRIPT} p mockup")
-                self.close_menu()
+                self.ssfull(mockup=True) # Call ssfull with mockup=True
             return True
         return False
 
@@ -194,8 +212,7 @@ class Toolbox(Box):
         if event.keyval in {Gdk.KEY_Return, Gdk.KEY_KP_Enter}:
             modifiers = event.get_state()
             if modifiers & Gdk.ModifierType.SHIFT_MASK:
-                exec_shell_command_async(f"bash {SCREENSHOT_SCRIPT} p mockup")
-                self.close_menu()
+                self.ssfull(mockup=True) # Call ssfull with mockup=True
             else:
                 self.ssfull()
             return True
@@ -226,6 +243,31 @@ class Toolbox(Box):
             return True
         return False
 
+    def sswindow(self, *args):
+        exec_shell_command_async(f"bash {SCREENSHOT_SCRIPT} w")
+        self.close_menu()
+
+    def on_sswindow_click(self, button, event):
+        if event.type == Gdk.EventType.BUTTON_PRESS:
+            if event.button == 1:  # Left click
+                self.sswindow()
+            elif event.button == 3:  # Right click
+                exec_shell_command_async(f"bash {SCREENSHOT_SCRIPT} w mockup")
+                self.close_menu()
+            return True
+        return False
+
+    def on_sswindow_key(self, widget, event):
+        if event.keyval in {Gdk.KEY_Return, Gdk.KEY_KP_Enter}:
+            modifiers = event.get_state()
+            if modifiers & Gdk.ModifierType.SHIFT_MASK:
+                exec_shell_command_async(f"bash {SCREENSHOT_SCRIPT} w mockup")
+                self.close_menu()
+            else:
+                self.sswindow()
+            return True
+        return False
+
     def screenrecord(self, *args):
         # Launch screenrecord script in detached mode so that it remains running independently of this program.
         exec_shell_command_async(f"bash -c 'nohup bash {SCREENRECORD_SCRIPT} > /dev/null 2>&1 & disown'")
@@ -238,19 +280,24 @@ class Toolbox(Box):
 
     # Function to check if the pomodoro script is running
     def pomodoro_check(self):
-        try:
-            result = subprocess.run("pgrep -f pomodoro.sh", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            running = result.returncode == 0
-        except Exception:
-            running = False
+        def check():
+            try:
+                result = subprocess.run("pgrep -f pomodoro.sh", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                running = result.returncode == 0
+            except Exception:
+                running = False
 
-        if running:
-            self.btn_pomodoro.get_child().set_markup(icons.timer_on)
-            self.btn_pomodoro.add_style_class("pomodoro")
-        else:
-            self.btn_pomodoro.get_child().set_markup(icons.timer_off)
-            self.btn_pomodoro.remove_style_class("pomodoro")
-
+            def update_ui():
+                if running:
+                    self.btn_pomodoro.get_child().set_markup(icons.timer_on)
+                    self.btn_pomodoro.add_style_class("pomodoro")
+                else:
+                    self.btn_pomodoro.get_child().set_markup(icons.timer_off)
+                    self.btn_pomodoro.remove_style_class("pomodoro")
+                return False
+            GLib.idle_add(update_ui)
+            return False
+        GLib.idle_add(lambda: threading.Thread(target=check).start())
         return True
 
     def ocr(self, *args):
@@ -263,22 +310,23 @@ class Toolbox(Box):
         self.close_menu()
 
     def gamemode_check(self):
-        try:
-            result = subprocess.run(f"bash {GAMEMODE_SCRIPT} check", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            enabled = result.stdout == b't\n'
-        except Exception:
-            enabled = False
+        def check():
+            try:
+                result = subprocess.run(f"bash {GAMEMODE_SCRIPT} check", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                enabled = result.stdout == b't\n'
+            except Exception:
+                enabled = False
 
-        if enabled:
-            self.btn_gamemode.get_child().set_markup(icons.gamemode_off)
-        else:
-            self.btn_gamemode.get_child().set_markup(icons.gamemode)
-
+            def update_ui():
+                if enabled:
+                    self.btn_gamemode.get_child().set_markup(icons.gamemode_off)
+                else:
+                    self.btn_gamemode.get_child().set_markup(icons.gamemode)
+                return False
+            GLib.idle_add(update_ui)
+            return False
+        GLib.idle_add(lambda: threading.Thread(target=check).start())
         return True
-
-    def ssregion(self, *args):
-        exec_shell_command_async(f"bash {SCREENSHOT_SCRIPT} sf")
-        self.close_menu()
 
     def colorpicker(self, button, event):
         if event.type == Gdk.EventType.BUTTON_PRESS:
@@ -309,27 +357,24 @@ class Toolbox(Box):
         return False
 
     def update_screenrecord_state(self):
-        """
-        Checks if the 'gpu-screen-recorder' process is running.
-        If it is, updates the btn_screenrecord icon to icons.stop and adds the 'recording' style class.
-        Otherwise, sets the icon back to icons.screenrecord and removes the 'recording' style class.
-        This function is called periodically every second.
-        """
-        try:
-            # Use pgrep with -f to check for the process name anywhere in the command line
-            result = subprocess.run("pgrep -f gpu-screen-recorder", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            running = result.returncode == 0
-        except Exception:
-            running = False
+        def check():
+            try:
+                result = subprocess.run("pgrep -f gpu-screen-recorder", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                running = result.returncode == 0
+            except Exception:
+                running = False
 
-        if running:
-            self.btn_screenrecord.get_child().set_markup(icons.stop)
-            self.btn_screenrecord.add_style_class("recording")
-        else:
-            self.btn_screenrecord.get_child().set_markup(icons.screenrecord)
-            self.btn_screenrecord.remove_style_class("recording")
-        
-        # Return True to keep this callback active.
+            def update_ui():
+                if running:
+                    self.btn_screenrecord.get_child().set_markup(icons.stop)
+                    self.btn_screenrecord.add_style_class("recording")
+                else:
+                    self.btn_screenrecord.get_child().set_markup(icons.screenrecord)
+                    self.btn_screenrecord.remove_style_class("recording")
+                return False
+            GLib.idle_add(update_ui)
+            return False
+        GLib.idle_add(lambda: threading.Thread(target=check).start())
         return True
 
     def open_screenshots_folder(self, *args):
