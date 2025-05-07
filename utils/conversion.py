@@ -304,7 +304,7 @@ class Units():
 class Conversion():
     def __init__(self):
         self.units = Units()
-    
+
     def convert(self, value: float, from_type: str, to_type: str):
         """
         Generalized conversion function that works with all types.
@@ -389,7 +389,7 @@ class Conversion():
         """
         Strips the 's' from the end of the type if it exists.
         """
-        if type in self.units.currency_converter.currencies:
+        if type.upper() in self.units.currency_converter.currencies:
             return type.upper()
         if type.endswith("s") and type is not "celsius":
             if type[:-1] in self.units.STORAGE_TYPE_CHART:

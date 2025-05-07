@@ -558,8 +558,6 @@ class AppLauncher(Box):
         self.save_conversion_history()
         self.update_conversion_viewport()
         
-        
-
     def update_calculator_viewport(self):
         self.viewport.children = []
         for item in self.calc_history:
