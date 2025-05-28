@@ -1,21 +1,24 @@
-import os
-import hashlib
-import shutil
 import colorsys
-from gi.repository import GdkPixbuf, Gtk, GLib, Gio, Gdk, Pango
+import concurrent.futures
+import hashlib
+import os
+import shutil
+from concurrent.futures import ThreadPoolExecutor
+
+from fabric.utils.helpers import exec_shell_command_async
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.entry import Entry
-from fabric.widgets.scrolledwindow import ScrolledWindow
 from fabric.widgets.label import Label
-from fabric.utils.helpers import exec_shell_command_async
-import modules.icons as icons
-import config.data as data
-import config.config
+from fabric.widgets.scrolledwindow import ScrolledWindow
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango
 from PIL import Image
-import concurrent.futures
-from concurrent.futures import ThreadPoolExecutor
+
+import config.config
+import config.data as data
+import modules.icons as icons
+
 
 class WallpaperSelector(Box):
     CACHE_DIR = f"{data.CACHE_DIR}/thumbs"  # Changed from wallpapers to thumbs
@@ -70,13 +73,18 @@ class WallpaperSelector(Box):
             spacing=10,
             h_expand=True,
             v_expand=True,
+            h_align="fill",
+            v_align="fill",
             child=self.viewport,
+            propagate_width=False,
+            propagate_height=False,
         )
 
         self.search_entry = Entry(
             name="search-entry-walls",
             placeholder="Search Wallpapers...",
             h_expand=True,
+            h_align="fill",
             notify_text=lambda entry, *_: self.arrange_viewport(entry.get_text()),
             on_key_press_event=self.on_search_entry_key_press,
         )
@@ -131,14 +139,12 @@ class WallpaperSelector(Box):
         self.mat_icon = Label(name="mat-label", markup=icons.palette)
 
         # Add the switcher to the header_box's start_children
-        self.header_box = CenterBox(
+        self.header_box = Box(
             name="header-box",
-            spacing=8,
+            spacing=4,
             orientation="h",
             # Removed color button and label from here
-            start_children=[self.matugen_switcher, self.mat_icon],
-            center_children=[self.search_entry],
-            end_children=[self.scheme_dropdown],
+            children=[self.matugen_switcher, self.mat_icon, self.search_entry, self.scheme_dropdown],
         )
 
         self.add(self.header_box)
