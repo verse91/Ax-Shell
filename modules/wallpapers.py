@@ -3,6 +3,7 @@ import concurrent.futures
 import hashlib
 import os
 import shutil
+import random # <--- AÑADIDO
 from concurrent.futures import ThreadPoolExecutor
 
 from fabric.utils.helpers import exec_shell_command_async
@@ -143,6 +144,7 @@ class WallpaperSelector(Box):
             child=Label(name="random-wall-label", markup=icons.dice_1),
             tooltip_text="Random Wallpaper",
         )
+        self.random_wall.connect("clicked", self.set_random_wallpaper) # <--- AÑADIDO
 
         # Add the switcher to the header_box's start_children
         self.header_box = Box(
@@ -196,8 +198,47 @@ class WallpaperSelector(Box):
         # self.scheme_dropdown.set_sensitive(self.matugen_enabled) # Ensure sensitivity is set correctly on load
         self.setup_file_monitor()  # Initialize file monitoring
         self.show_all()
+        self.randomize_dice_icon() # <--- AÑADIDO
         # Ensure the search entry gets focus when starting
         self.search_entry.grab_focus()
+
+    def randomize_dice_icon(self):
+        dice_icons = [
+            icons.dice_1,
+            icons.dice_2,
+            icons.dice_3,
+            icons.dice_4,
+            icons.dice_5,
+            icons.dice_6,
+        ]
+        chosen_icon = random.choice(dice_icons)
+        label = self.random_wall.get_child()
+        if isinstance(label, Label):
+            label.set_markup(chosen_icon)
+
+    def set_random_wallpaper(self, widget):
+        if not self.files:
+            print("No wallpapers available to set a random one.")
+            return
+
+        file_name = random.choice(self.files)
+        full_path = os.path.join(data.WALLPAPERS_DIR, file_name)
+        selected_scheme = self.scheme_dropdown.get_active_id()
+        current_wall = os.path.expanduser(f"~/.current.wall")
+
+        if os.path.isfile(current_wall) or os.path.islink(current_wall): # Check for link too
+            os.remove(current_wall)
+        os.symlink(full_path, current_wall)
+
+        if self.matugen_switcher.get_active():
+            exec_shell_command_async(f'matugen image "{full_path}" -t {selected_scheme}')
+        else:
+            exec_shell_command_async(
+                f'swww img "{full_path}" -t outer --transition-duration 1.5 --transition-step 255 --transition-fps 60 -f Nearest'
+            )
+        
+        print(f"Set random wallpaper: {file_name}")
+        self.randomize_dice_icon()
 
     def setup_file_monitor(self):
         gfile = Gio.File.new_for_path(data.WALLPAPERS_DIR)
@@ -268,16 +309,16 @@ class WallpaperSelector(Box):
         full_path = os.path.join(data.WALLPAPERS_DIR, file_name)
         selected_scheme = self.scheme_dropdown.get_active_id()
         current_wall = os.path.expanduser(f"~/.current.wall")
-        if os.path.isfile(current_wall):
+        if os.path.isfile(current_wall) or os.path.islink(current_wall):
             os.remove(current_wall)
         os.symlink(full_path, current_wall)
         if self.matugen_switcher.get_active():
             # Matugen is enabled: run the normal command.
-            exec_shell_command_async(f'matugen image {full_path} -t {selected_scheme}')
+            exec_shell_command_async(f'matugen image "{full_path}" -t {selected_scheme}')
         else:
             # Matugen is disabled: run the alternative swww command.
             exec_shell_command_async(
-                f'swww img {full_path} -t outer --transition-duration 1.5 --transition-step 255 --transition-fps 60 -f Nearest'
+                f'swww img "{full_path}" -t outer --transition-duration 1.5 --transition-step 255 --transition-fps 60 -f Nearest'
             )
 
     def on_scheme_changed(self, combo):
