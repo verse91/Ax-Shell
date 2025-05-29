@@ -138,6 +138,12 @@ class WallpaperSelector(Box):
 
         self.mat_icon = Label(name="mat-label", markup=icons.palette)
 
+        self.random_wall = Button(
+            name="random-wall-button",
+            child=Label(name="random-wall-label", markup=icons.dice_1),
+            tooltip_text="Random Wallpaper",
+        )
+
         # Add the switcher to the header_box's start_children
         self.header_box = Box(
             name="header-box",
