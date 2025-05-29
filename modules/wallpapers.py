@@ -8,7 +8,6 @@ from concurrent.futures import ThreadPoolExecutor
 from fabric.utils.helpers import exec_shell_command_async
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
-from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.entry import Entry
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
@@ -129,6 +128,7 @@ class WallpaperSelector(Box):
 
         # Create a switcher to enable/disable Matugen (enabled by default)
         self.matugen_switcher = Gtk.Switch(name="matugen-switcher")
+        self.matugen_switcher.set_tooltip_text("Toggle dynamic colors")
         self.matugen_switcher.set_vexpand(False)
         self.matugen_switcher.set_hexpand(False)
         self.matugen_switcher.set_valign(Gtk.Align.CENTER)
@@ -141,10 +141,9 @@ class WallpaperSelector(Box):
         # Add the switcher to the header_box's start_children
         self.header_box = Box(
             name="header-box",
-            spacing=4,
+            spacing=8,
             orientation="h",
-            # Removed color button and label from here
-            children=[self.matugen_switcher, self.mat_icon, self.search_entry, self.scheme_dropdown],
+            children=[self.search_entry, self.scheme_dropdown, self.matugen_switcher],
         )
 
         self.add(self.header_box)
