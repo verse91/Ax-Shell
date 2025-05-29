@@ -149,7 +149,7 @@ class WallpaperSelector(Box):
             name="header-box",
             spacing=8,
             orientation="h",
-            children=[self.search_entry, self.scheme_dropdown, self.matugen_switcher],
+            children=[self.random_wall, self.search_entry, self.scheme_dropdown, self.matugen_switcher],
         )
 
         self.add(self.header_box)
