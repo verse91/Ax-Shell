@@ -5,7 +5,6 @@ import socket
 import subprocess
 import sys
 import threading
-# NUEVA LÍNEA: Importar time
 import time
 from pathlib import Path
 
@@ -147,18 +146,41 @@ def kill_processes():
 
 
 def run_disowned_command():
+    main_py = os.path.expanduser(f"{data.HOME_DIR}/.config/{data.APP_NAME_CAP}/main.py")
+    kill_cmd = f"killall {data.APP_NAME}"
+    start_cmd = ["uwsm", "app", "--", "python", main_py]
+
+    start_time = time.time()
+
     try:
-        command = f"killall -q {data.APP_NAME}; uwsm app -- python {data.HOME_DIR}/.config/{data.APP_NAME_CAP}/main.py"
-        subprocess.Popen(
-            command,
+        kill_proc = subprocess.Popen(
+            kill_cmd,
             shell=True,
-            start_new_session=True,
-            stdout=subprocess.DEVNULL, # Suppress output from disowned process
+            stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        print(f"{data.APP_NAME_CAP} process restart initiated.")
+        kill_proc.wait(timeout=2)
+        print(f"{time.time():.4f}: killall process finished (o timed out).")
+    except subprocess.TimeoutExpired:
+        print("Warning: killall command timed out.")
     except Exception as e:
-        print(f"Error restarting {data.APP_NAME_CAP} process: {e}")
+        print(f"Error running killall: {e}")
+
+    try:
+        subprocess.Popen(
+            start_cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
+        print(f"{data.APP_NAME_CAP} restart initiated via Popen.")
+    except FileNotFoundError as e:
+        print(f"Error restarting {data.APP_NAME_CAP}: Command not found ({e})")
+    except Exception as e:
+        print(f"Error restarting {data.APP_NAME_CAP} via Popen: {e}")
+
+    end_time = time.time()
+    print(f"{end_time:.4f}: Background task finished (Total: {end_time - start_time:.4f}s).")
 
 
 def is_connected():
