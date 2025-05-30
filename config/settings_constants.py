@@ -1,7 +1,4 @@
-import os
-
-from .data import (APP_NAME,  # Añadir APP_NAME; Importar las nuevas constantes
-                   APP_NAME_CAP, NOTIF_POS_DEFAULT, NOTIF_POS_KEY,
+from .data import (APP_NAME, APP_NAME_CAP, NOTIF_POS_DEFAULT, NOTIF_POS_KEY,
                    PANEL_POSITION_DEFAULT, PANEL_POSITION_KEY,
                    WALLPAPERS_DIR_DEFAULT)
 
@@ -41,6 +38,8 @@ DEFAULTS = {
     'suffix_emoji': "PERIOD",
     'prefix_power': "SUPER",
     'suffix_power': "ESCAPE",
+    'prefix_caffeine': "SUPER SHIFT",
+    'suffix_caffeine': "M",
     'prefix_toggle': "SUPER CTRL",
     'suffix_toggle': "B",
     'prefix_css': "SUPER SHIFT",

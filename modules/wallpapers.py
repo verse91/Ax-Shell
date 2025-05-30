@@ -214,7 +214,7 @@ class WallpaperSelector(Box):
         if isinstance(label, Label):
             label.set_markup(chosen_icon)
 
-    def set_random_wallpaper(self, widget):
+    def set_random_wallpaper(self, widget, external=False):
         if not self.files:
             print("No wallpapers available to set a random one.")
             return
@@ -236,6 +236,10 @@ class WallpaperSelector(Box):
             )
         
         print(f"Set random wallpaper: {file_name}")
+
+        if external:
+            exec_shell_command_async(f"notify-send '🎲 Wallpaper' 'Setting a random wallpaper 🎨' -a '{data.APP_NAME_CAP}' -i '{full_path}' -e")
+
         self.randomize_dice_icon()
 
     def setup_file_monitor(self):
