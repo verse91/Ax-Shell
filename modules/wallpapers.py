@@ -2,8 +2,8 @@ import colorsys
 import concurrent.futures
 import hashlib
 import os
+import random  # <--- AÑADIDO
 import shutil
-import random # <--- AÑADIDO
 from concurrent.futures import ThreadPoolExecutor
 
 from fabric.utils.helpers import exec_shell_command_async
@@ -193,12 +193,10 @@ class WallpaperSelector(Box):
         # Removed the old main_content_box and its add
 
         self._start_thumbnail_thread()
-        self.connect("map", self.on_map) # Connect the map signal
-        # Set initial sensitivity based on loaded state
-        # self.scheme_dropdown.set_sensitive(self.matugen_enabled) # Ensure sensitivity is set correctly on load
-        self.setup_file_monitor()  # Initialize file monitoring
+        self.connect("map", self.on_map)
+        self.setup_file_monitor()
         self.show_all()
-        self.randomize_dice_icon() # <--- AÑADIDO
+        self.randomize_dice_icon()
         # Ensure the search entry gets focus when starting
         self.search_entry.grab_focus()
 
