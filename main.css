@@ -39,3 +39,75 @@
 #kanban-header {
   background-color: alpha(black, 0.5);
 }
+
+#update-window {
+  background: linear-gradient(
+    135deg,
+    var(--surface) 0%,
+    var(--surface) 1%,
+    var(--shadow) 1%,
+    var(--shadow) 2%,
+    var(--surface) 2%,
+    var(--surface) 3%,
+    var(--shadow) 3%,
+    var(--shadow) 4%,
+    var(--surface) 4%,
+    var(--surface) 5%,
+    var(--shadow) 5%,
+    var(--shadow) 6%,
+    var(--surface) 6%,
+    var(--surface) 7%,
+    var(--shadow) 7%,
+    var(--shadow) 8%,
+    var(--shadow) 93%,
+    var(--surface) 93%,
+    var(--surface) 94%,
+    var(--shadow) 94%,
+    var(--shadow) 95%,
+    var(--surface) 95%,
+    var(--surface) 96%,
+    var(--shadow) 96%,
+    var(--shadow) 97%,
+    var(--surface) 97%,
+    var(--surface) 98%,
+    var(--shadow) 98%,
+    var(--shadow) 99%,
+    var(--surface) 99%,
+    var(--surface) 100%
+  );
+  border-radius: 0;
+}
+
+#update-button {
+  background-color: var(--primary);
+  border-radius: 8px;
+  padding: 8px;
+  font-weight: bold;
+}
+
+#update-button:hover {
+  background-color: var(--foreground);
+}
+
+#update-button:active {
+  background-color: var(--primary);
+}
+
+#update-button label {
+  color: var(--shadow);
+}
+
+#later-button {
+  background-color: var(--surface-bright);
+  border-radius: 8px;
+  padding: 8px;
+  font-weight: bold;
+}
+
+#later-button:hover {
+  background-color: var(--outline);
+}
+
+#later-button:active {
+  background-color: var(--surface-bright);
+}

@@ -150,9 +150,9 @@ def is_connected():
 # --- GTK Update Window ---
 class UpdateWindow(Gtk.Window):
     def __init__(self, latest_version, changelog, is_standalone_mode=False):
-        super().__init__(title=f"{data.APP_NAME_CAP} Updater")
+        super().__init__(name="update-window", title=f"{data.APP_NAME_CAP} Updater")
         self.set_default_size(500, 480)
-        # self.set_border_width(12)
+        self.set_border_width(16)
         self.set_resizable(False)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_keep_above(True)
@@ -211,12 +211,12 @@ class UpdateWindow(Gtk.Window):
         action_box.set_halign(Gtk.Align.END)
         main_vbox.pack_start(action_box, False, False, 10)
 
-        self.update_button = Gtk.Button(label="Update and Restart")
+        self.update_button = Gtk.Button(name="update-button", label="Update and Restart")
         self.update_button.get_style_context().add_class("suggested-action")
         self.update_button.connect("clicked", self.on_update_clicked)
         action_box.pack_end(self.update_button, False, False, 0)
 
-        self.close_button = Gtk.Button(label="Later")
+        self.close_button = Gtk.Button(name="later-button", label="Later")
         self.close_button.connect("clicked", lambda _: self.destroy())
         action_box.pack_end(self.close_button, False, False, 0)
 
