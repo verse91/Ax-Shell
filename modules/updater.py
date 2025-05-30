@@ -9,6 +9,9 @@ from pathlib import Path
 
 import gi
 
+# NUEVA LÍNEA: Importar time
+import time
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fabric.utils.helpers import get_relative_path
 
@@ -23,8 +26,34 @@ REMOTE_VERSION_FILE = "/tmp/remote_version.json"
 REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/dev/utils/version.json"
 REPO_DIR = get_relative_path("../")
 
+# NUEVAS LÍNEAS: Constantes para el snooze
+SNOOZE_FILE_NAME = "updater_snooze.txt"
+SNOOZE_DURATION_SECONDS = 8 * 60 * 60  # 8 horas en segundos
+
 # --- Global state for standalone execution control ---
 _QUIT_GTK_IF_NO_WINDOW_STANDALONE = False
+
+# NUEVA FUNCIÓN
+def get_snooze_file_path():
+    # data.CACHE_DIR se espera que sea ~/.cache/APP_NAME
+    # data.APP_NAME está disponible a través de la importación de config.data
+    cache_dir_base = data.CACHE_DIR
+    if not cache_dir_base: # Salvaguarda por si data.CACHE_DIR no estuviera definido como se espera
+        print(f"Warning: data.CACHE_DIR is not defined. Falling back to ~/.cache/{data.APP_NAME}")
+        cache_dir_base = os.path.expanduser(f"~/.cache/{data.APP_NAME}")
+    
+    # Asegurarse de que el directorio base para el snooze exista
+    try:
+        os.makedirs(cache_dir_base, exist_ok=True)
+    except Exception as e:
+        print(f"Error creating cache directory {cache_dir_base}: {e}")
+        # Fallback a un directorio temporal si la creación falla, aunque esto no persistirá el snooze correctamente.
+        # Es mejor que el programa falle en crear el snooze que en un lugar inesperado.
+        # Considerar si se debe lanzar una excepción o manejar de otra forma.
+        # Por ahora, se procederá e intentará escribir el archivo, lo que probablemente fallará si el dir no existe.
+        pass
+        
+    return os.path.join(cache_dir_base, SNOOZE_FILE_NAME)
 
 
 # --- Network and Version Functions ---
@@ -217,10 +246,25 @@ class UpdateWindow(Gtk.Window):
         action_box.pack_end(self.update_button, False, False, 0)
 
         self.close_button = Gtk.Button(name="later-button", label="Later")
-        self.close_button.connect("clicked", lambda _: self.destroy())
+        # ANTES: self.close_button.connect("clicked", lambda _: self.destroy())
+        # DESPUÉS:
+        self.close_button.connect("clicked", self.on_later_clicked)
         action_box.pack_end(self.close_button, False, False, 0)
 
         self.connect("destroy", self.on_window_destroyed)
+
+    # NUEVO MÉTODO
+    def on_later_clicked(self, _widget):
+        snooze_file_path = get_snooze_file_path()
+        # El directorio base ya se intenta crear en get_snooze_file_path()
+        # Aquí solo intentamos escribir el archivo.
+        try:
+            with open(snooze_file_path, "w") as f:
+                f.write(str(time.time()))
+            print(f"Update snoozed. Snooze file created at: {snooze_file_path}")
+        except Exception as e:
+            print(f"Error creating snooze file {snooze_file_path}: {e}")
+        self.destroy()
 
     def on_update_clicked(self, _widget):
         self.update_button.set_sensitive(False)
@@ -311,6 +355,40 @@ def _initiate_update_check_flow(is_standalone_mode):
         if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
             GLib.idle_add(Gtk.main_quit)
         return
+
+    # --- NUEVO: Comprobación del archivo Snooze ---
+    snooze_file_path = get_snooze_file_path()
+    if os.path.exists(snooze_file_path):
+        try:
+            with open(snooze_file_path, "r") as f:
+                snooze_timestamp_str = f.read().strip()
+                snooze_timestamp = float(snooze_timestamp_str)
+            
+            current_time = time.time()
+            if current_time - snooze_timestamp < SNOOZE_DURATION_SECONDS:
+                snooze_until_time = snooze_timestamp + SNOOZE_DURATION_SECONDS
+                snooze_until_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(snooze_until_time))
+                print(f"Update check snoozed. Will check again after {snooze_until_time_str}.")
+                if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
+                    GLib.idle_add(Gtk.main_quit)
+                return # No mostrar la ventana de actualización
+            else:
+                print("Snooze period expired. Removing snooze file and checking for updates.")
+                os.remove(snooze_file_path)
+        except ValueError:
+            print(f"Error: Snooze file content is not a valid timestamp. Removing: {snooze_file_path}")
+            try:
+                os.remove(snooze_file_path)
+            except OSError as e_remove:
+                print(f"Error removing corrupted snooze file: {e_remove}")
+        except Exception as e_snooze:
+            print(f"Error processing snooze file {snooze_file_path}: {e_snooze}. Proceeding with update check.")
+            # Opcionalmente, eliminar el archivo si causa problemas persistentes
+            try:
+                os.remove(snooze_file_path)
+            except OSError as e_remove_generic:
+                print(f"Error removing problematic snooze file: {e_remove_generic}")
+    # --- FIN DE LA COMPROBACIÓN DEL SNOOZE ---
 
     fetch_remote_version()
 
