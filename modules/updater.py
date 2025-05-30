@@ -5,12 +5,11 @@ import socket
 import subprocess
 import sys
 import threading
+# NUEVA LÍNEA: Importar time
+import time
 from pathlib import Path
 
 import gi
-
-# NUEVA LÍNEA: Importar time
-import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fabric.utils.helpers import get_relative_path
@@ -23,12 +22,11 @@ from gi.repository import Gdk, GLib, Gtk
 # File locations
 VERSION_FILE = get_relative_path("../utils/version.json")
 REMOTE_VERSION_FILE = "/tmp/remote_version.json"
-REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/dev/utils/version.json"
+REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/main/utils/version.json"
 REPO_DIR = get_relative_path("../")
 
-# NUEVAS LÍNEAS: Constantes para el snooze
 SNOOZE_FILE_NAME = "updater_snooze.txt"
-SNOOZE_DURATION_SECONDS = 8 * 60 * 60  # 8 horas en segundos
+SNOOZE_DURATION_SECONDS = 8 * 60 * 60  # 8 hours
 
 # --- Global state for standalone execution control ---
 _QUIT_GTK_IF_NO_WINDOW_STANDALONE = False
@@ -47,10 +45,6 @@ def get_snooze_file_path():
         os.makedirs(cache_dir_base, exist_ok=True)
     except Exception as e:
         print(f"Error creating cache directory {cache_dir_base}: {e}")
-        # Fallback a un directorio temporal si la creación falla, aunque esto no persistirá el snooze correctamente.
-        # Es mejor que el programa falle en crear el snooze que en un lugar inesperado.
-        # Considerar si se debe lanzar una excepción o manejar de otra forma.
-        # Por ahora, se procederá e intentará escribir el archivo, lo que probablemente fallará si el dir no existe.
         pass
         
     return os.path.join(cache_dir_base, SNOOZE_FILE_NAME)
@@ -193,8 +187,8 @@ class UpdateWindow(Gtk.Window):
         main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
         self.add(main_vbox)
 
-        title_label = Gtk.Label()
-        title_label.set_markup("<span size='xx-large' weight='bold'>Update Available</span>")
+        title_label = Gtk.Label(name="update-title")
+        title_label.set_markup("<span size='xx-large' weight='bold'>📦 Update Available ✨</span>")
         title_label.get_style_context().add_class("title-1")
         main_vbox.pack_start(title_label, False, False, 10)
 
@@ -256,8 +250,6 @@ class UpdateWindow(Gtk.Window):
     # NUEVO MÉTODO
     def on_later_clicked(self, _widget):
         snooze_file_path = get_snooze_file_path()
-        # El directorio base ya se intenta crear en get_snooze_file_path()
-        # Aquí solo intentamos escribir el archivo.
         try:
             with open(snooze_file_path, "w") as f:
                 f.write(str(time.time()))
@@ -356,7 +348,6 @@ def _initiate_update_check_flow(is_standalone_mode):
             GLib.idle_add(Gtk.main_quit)
         return
 
-    # --- NUEVO: Comprobación del archivo Snooze ---
     snooze_file_path = get_snooze_file_path()
     if os.path.exists(snooze_file_path):
         try:
@@ -371,7 +362,7 @@ def _initiate_update_check_flow(is_standalone_mode):
                 print(f"Update check snoozed. Will check again after {snooze_until_time_str}.")
                 if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
                     GLib.idle_add(Gtk.main_quit)
-                return # No mostrar la ventana de actualización
+                return # Don't show update
             else:
                 print("Snooze period expired. Removing snooze file and checking for updates.")
                 os.remove(snooze_file_path)
@@ -383,12 +374,10 @@ def _initiate_update_check_flow(is_standalone_mode):
                 print(f"Error removing corrupted snooze file: {e_remove}")
         except Exception as e_snooze:
             print(f"Error processing snooze file {snooze_file_path}: {e_snooze}. Proceeding with update check.")
-            # Opcionalmente, eliminar el archivo si causa problemas persistentes
             try:
                 os.remove(snooze_file_path)
             except OSError as e_remove_generic:
                 print(f"Error removing problematic snooze file: {e_remove_generic}")
-    # --- FIN DE LA COMPROBACIÓN DEL SNOOZE ---
 
     fetch_remote_version()
 
