@@ -144,17 +144,16 @@ def update_local_repo(progress_callback):
 
 def kill_processes():
     subprocess.run(["pkill", data.APP_NAME], check=False)
-    subprocess.run(["pkill", "cava"], check=False)
 
 
 def run_disowned_command():
     try:
-        command = f"killall -q {data.APP_NAME}; uwsm app -- python {data.HOME_DIR}/.config/{data.APP_NAME_CAP}/main.py"
+        command = f"bash -c 'killall -q {data.APP_NAME}; sleep 0.2; uwsm app -- python {data.HOME_DIR}/.config/{data.APP_NAME_CAP}/main.py'"
         subprocess.Popen(
             command,
             shell=True,
             start_new_session=True,
-            stdout=subprocess.DEVNULL, # Suppress output from disowned process
+            stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
         print(f"{data.APP_NAME_CAP} process restart initiated.")
