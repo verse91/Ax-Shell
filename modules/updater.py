@@ -148,10 +148,10 @@ def kill_processes():
 
 def run_disowned_command():
     try:
-        command = f"bash -c 'killall -q {data.APP_NAME}; sleep 0.2; uwsm app -- python {data.HOME_DIR}/.config/{data.APP_NAME_CAP}/main.py'"
+        subprocess.run(["killall", "-q", data.APP_NAME])
+        time.sleep(0.5)  # pequeño delay para asegurarse de que se mate el proceso
         subprocess.Popen(
-            command,
-            shell=True,
+            ["uwsm", "app", "--", "python", f"{data.HOME_DIR}/.config/{data.APP_NAME_CAP}/main.py"],
             start_new_session=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
