@@ -342,8 +342,7 @@ def check_for_updates():
     thread.start()
 
 
-# --- Main execution point for standalone script ---
-if __name__ == '__main__':
+def run_updater():
     _QUIT_GTK_IF_NO_WINDOW_STANDALONE = True 
     
     # Run the update check logic in a thread.

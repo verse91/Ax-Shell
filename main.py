@@ -1,9 +1,13 @@
 import os
 import subprocess
 
+import gi
+
+gi.require_version('GLib', '2.0')
 import setproctitle
 from fabric import Application
 from fabric.utils import exec_shell_command_async, get_relative_path
+from gi.repository import GLib
 
 from config.data import (APP_NAME, APP_NAME_CAP, CACHE_DIR, CONFIG_FILE,
                          HOME_DIR)
@@ -12,19 +16,9 @@ from modules.corners import Corners
 from modules.dock import Dock
 from modules.notch import Notch
 from modules.notifications import NotificationPopup
+from modules.updater import run_updater
 
 fonts_updated_file = f"{CACHE_DIR}/fonts_updated"
-
-def run_updater():
-    try:
-        subprocess.Popen(
-            f"python {HOME_DIR}/.config/{APP_NAME_CAP}/modules/updater.py",
-            shell=True,
-            start_new_session=True,
-        )
-        print("Updater process restarted.")
-    except Exception as e:
-        print(f"Error restarting Updater process: {e}")
 
 if __name__ == "__main__":
     setproctitle.setproctitle(APP_NAME)
@@ -42,7 +36,7 @@ if __name__ == "__main__":
     from config.data import load_config
     config = load_config()
 
-    run_updater()
+    GLib.idle_add(run_updater)
     
     corners = Corners()
     bar = Bar()
