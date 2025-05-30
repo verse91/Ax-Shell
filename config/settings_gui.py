@@ -123,8 +123,10 @@ class HyprConfGUI(Window):
             ("Toolbox", 'prefix_toolbox', 'suffix_toolbox'),
             ("Overview", 'prefix_overview', 'suffix_overview'),
             ("Wallpapers", 'prefix_wallpapers', 'suffix_wallpapers'),
+            ("Random Wallpaper", 'prefix_randwall', 'suffix_randwall'),
             ("Emoji Picker", 'prefix_emoji', 'suffix_emoji'),
             ("Power Menu", 'prefix_power', 'suffix_power'),
+            ("Toggle Caffeine", 'prefix_caffeine', 'suffix_caffeine'),
             ("Reload CSS", 'prefix_css', 'suffix_css'),
             ("Restart with inspector", 'prefix_restart_inspector', 'suffix_restart_inspector'),
         ]

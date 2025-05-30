@@ -377,12 +377,13 @@ class CaffeineButton(Button):
         self.widgets = [self, self.caffeine_label, self.caffeine_status, self.caffeine_icon]
         self.check_wlinhibit()
 
-    def toggle_wlinhibit(self, *args):
+    def toggle_wlinhibit(self, *args, external=False):
         """
         Toggle the 'wlinhibit' process:
           - If running, kill it and mark as 'Disabled' (add 'disabled' class).
           - If not running, start it and mark as 'Enabled' (remove 'disabled' class).
         """
+
         try:
             subprocess.check_output(["pgrep", "wlinhibit"])
             exec_shell_command_async("pkill wlinhibit")
@@ -394,6 +395,11 @@ class CaffeineButton(Button):
             self.caffeine_status.set_label("Enabled")
             for i in self.widgets:
                 i.remove_style_class("disabled")
+
+        if external:
+            # Different if enabled or disabled
+            message = "Disabled 💤" if self.caffeine_status.get_label() == "Disabled" else "Enabled ☀️"
+            exec_shell_command_async(f"notify-send '☕ Caffeine' '{message}' -a '{data.APP_NAME_CAP}' -e")
 
     def check_wlinhibit(self, *args):
         try:
