@@ -37,6 +37,8 @@ if __name__ == "__main__":
     config = load_config()
 
     GLib.idle_add(run_updater)
+    # Every hour
+    GLib.timeout_add(3600000, run_updater)
     
     corners = Corners()
     bar = Bar()
