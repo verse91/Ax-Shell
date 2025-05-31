@@ -85,6 +85,7 @@ curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | 
     - `tesseract`
     - `tmux`
     - `uwsm`
+    - `vte3`
     - `webp-pixbuf-loader`
     - `wl-clipboard`
     - `wlinhibit`

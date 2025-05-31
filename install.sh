@@ -41,6 +41,7 @@ PACKAGES=(
   ttf-nerd-fonts-symbols-mono
   unzip
   uwsm
+  vte3
   webp-pixbuf-loader
   wl-clipboard
   wlinhibit

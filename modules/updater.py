@@ -5,59 +5,52 @@ import socket
 import subprocess
 import sys
 import threading
-# NUEVA LÍNEA: Importar time
-import time
+import time  # Ya estaba importado
 from pathlib import Path
 
 import gi
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from fabric.utils.helpers import get_relative_path
+from fabric.utils.helpers import \
+    get_relative_path  # Asumo que esta ruta es correcta para tu proyecto
 
-import config.data as data
+import config.data as data  # Asumo que este módulo existe y está configurado
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GLib, Gtk
+gi.require_version("Vte", "2.91") # Nueva importación para VTE
+from gi.repository import Gdk, GLib, Gtk, Vte  # Vte añadido aquí
 
-# File locations
+# File locations (sin cambios)
 VERSION_FILE = get_relative_path("../utils/version.json")
 REMOTE_VERSION_FILE = "/tmp/remote_version.json"
 REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/main/utils/version.json"
-REPO_DIR = get_relative_path("../")
-
+# REPO_DIR ya no se usa para git pull directamente, pero podría ser relevante para otros aspectos.
+REPO_DIR = get_relative_path("../") 
 SNOOZE_FILE_NAME = "updater_snooze.txt"
 SNOOZE_DURATION_SECONDS = 8 * 60 * 60  # 8 hours
 
 # --- Global state for standalone execution control ---
 _QUIT_GTK_IF_NO_WINDOW_STANDALONE = False
 
-# NUEVA FUNCIÓN
+# --- NUEVA FUNCIÓN (sin cambios) ---
 def get_snooze_file_path():
-    # data.CACHE_DIR se espera que sea ~/.cache/APP_NAME
-    # data.APP_NAME está disponible a través de la importación de config.data
     cache_dir_base = data.CACHE_DIR
-    if not cache_dir_base: # Salvaguarda por si data.CACHE_DIR no estuviera definido como se espera
+    if not cache_dir_base:
         print(f"Warning: data.CACHE_DIR is not defined. Falling back to ~/.cache/{data.APP_NAME}")
         cache_dir_base = os.path.expanduser(f"~/.cache/{data.APP_NAME}")
-    
-    # Asegurarse de que el directorio base para el snooze exista
     try:
         os.makedirs(cache_dir_base, exist_ok=True)
     except Exception as e:
         print(f"Error creating cache directory {cache_dir_base}: {e}")
-        pass
-        
     return os.path.join(cache_dir_base, SNOOZE_FILE_NAME)
 
-
-# --- Network and Version Functions ---
+# --- Network and Version Functions (sin cambios en su mayoría) ---
 def fetch_remote_version():
     try:
-        # Use timeout for curl to prevent indefinite blocking on network issues
         subprocess.run(
             ["curl", "-sL", "--connect-timeout", "10", REMOTE_URL, "-o", REMOTE_VERSION_FILE],
-            check=False,
-            timeout=15  # Overall timeout for the command
+            check=False, # No lanzar excepción en error, lo manejamos por la existencia del archivo
+            timeout=15
         )
     except subprocess.TimeoutExpired:
         print("Error: curl command timed out while fetching remote version.")
@@ -65,7 +58,6 @@ def fetch_remote_version():
         print("Error: curl command not found. Please install curl.")
     except Exception as e:
         print(f"Error fetching remote version: {e}")
-
 
 def get_local_version():
     if os.path.exists(VERSION_FILE):
@@ -81,7 +73,6 @@ def get_local_version():
             return "0.0.0", []
     return "0.0.0", []
 
-
 def get_remote_version():
     if os.path.exists(REMOTE_VERSION_FILE):
         try:
@@ -89,8 +80,8 @@ def get_remote_version():
                 data_content = json.load(f)
                 return (
                     data_content.get("version", "0.0.0"),
-                    data_content.get("changelog", []),
-                    data_content.get("download_url", "#"),
+                    data_content.get("changelog", []), # Changelog aún se obtiene, aunque no se use igual
+                    data_content.get("download_url", "#"), # download_url aún se obtiene
                 )
         except json.JSONDecodeError:
             print(f"Error: Could not decode JSON from remote version file: {REMOTE_VERSION_FILE}")
@@ -100,51 +91,23 @@ def get_remote_version():
             return "0.0.0", [], "#"
     return "0.0.0", [], "#"
 
-
 def update_local_version_file():
+    """Mueve el REMOTE_VERSION_FILE descargado al VERSION_FILE local."""
     if os.path.exists(REMOTE_VERSION_FILE):
         try:
             shutil.move(REMOTE_VERSION_FILE, VERSION_FILE)
+            print(f"Local version file updated: {VERSION_FILE}")
         except Exception as e:
             print(f"Error updating local version file: {e}")
-            # Potentially re-raise or handle more gracefully if this is critical
-            raise
+            # Considerar si se debe relanzar la excepción o manejarla
+            # raise
 
+# --- update_local_repo ELIMINADA ---
+# La funcionalidad de git pull se reemplaza por el terminal VTE y el script.
 
-def update_local_repo(progress_callback):
-    try:
-        subprocess.run(["git", "stash"], cwd=REPO_DIR, check=False, capture_output=True, text=True)
-
-        process = subprocess.Popen(
-            ["git", "pull"],
-            cwd=REPO_DIR,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        if process.stdout:
-            for line in process.stdout:
-                progress_callback(line)
-        process.wait()
-        
-        # Check for errors in git pull
-        if process.returncode != 0:
-            stderr_output = process.stderr.read() if process.stderr else "Unknown error"
-            print(f"Git pull failed with error: {stderr_output}")
-            # raise Exception(f"Git pull failed: {stderr_output}") # Optionally raise
-
-        subprocess.run(["git", "stash", "apply"], cwd=REPO_DIR, check=False, capture_output=True, text=True)
-    except FileNotFoundError:
-        print("Error: git command not found. Please ensure git is installed and in PATH.")
-        raise
-    except Exception as e:
-        print(f"Error updating local repository: {e}")
-        raise
-
-
+# --- Funciones de Proceso (sin cambios) ---
 def kill_processes():
     subprocess.run(["pkill", data.APP_NAME], check=False)
-
 
 def run_disowned_command():
     try:
@@ -160,7 +123,6 @@ def run_disowned_command():
     except Exception as e:
         print(f"Error restarting {data.APP_NAME_CAP} process: {e}")
 
-
 def is_connected():
     try:
         socket.create_connection(("www.google.com", 80), timeout=5)
@@ -168,85 +130,62 @@ def is_connected():
     except OSError:
         return False
 
-
-# --- GTK Update Window ---
+# --- GTK Update Window MODIFICADA ---
 class UpdateWindow(Gtk.Window):
     def __init__(self, latest_version, changelog, is_standalone_mode=False):
-        super().__init__(name="update-window", title=f"{data.APP_NAME_CAP} Updater")
-        self.set_default_size(500, 480)
+        super().__init__(name="ax-shell-installer-window", title=f"{data.APP_NAME_CAP} - Ax-Shell Installer")
+        self.set_default_size(750, 650) # Tamaño ajustado para el terminal
         self.set_border_width(16)
-        self.set_resizable(False)
+        self.set_resizable(True) # Permitir redimensionar
         self.set_position(Gtk.WindowPosition.CENTER)
-        self.set_keep_above(True)
-        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
-
+        # self.set_keep_above(True) # Puede ser molesto con un terminal activo
+        self.set_type_hint(Gdk.WindowTypeHint.NORMAL) # Dialog puede ser muy restrictivo
         self.is_standalone_mode = is_standalone_mode
         self.quit_gtk_main_on_destroy = False
 
         main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
         self.add(main_vbox)
 
-        title_label = Gtk.Label(name="update-title")
-        title_label.set_markup("<span size='xx-large' weight='bold'>📦 Update Available ✨</span>")
+        title_label = Gtk.Label(name="installer-title")
+        title_label.set_markup("<span size='xx-large' weight='bold'>🚀 Ax-Shell Installation Terminal 🚀</span>")
         title_label.get_style_context().add_class("title-1")
         main_vbox.pack_start(title_label, False, False, 10)
 
         info_label = Gtk.Label(
-            label=f"A new version ({latest_version}) of {data.APP_NAME_CAP} is available."
+            label=(f"This terminal will run the Ax-Shell installation script. "
+                   f"New version available: {latest_version}.\n"
+                   f"Click 'Run Install Script' to proceed.")
         )
         info_label.set_xalign(0)
         info_label.set_line_wrap(True)
-        main_vbox.pack_start(info_label, False, False, 0)
+        main_vbox.pack_start(info_label, False, False, 5)
 
-        changelog_header_label = Gtk.Label()
-        changelog_header_label.set_markup("<b>Changelog:</b>")
-        changelog_header_label.set_xalign(0)
-        main_vbox.pack_start(changelog_header_label, False, False, 5)
-
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_hexpand(True)
-        scrolled_window.set_vexpand(True)
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        
-        self.changelog_view = Gtk.TextView()
-        self.changelog_view.set_editable(False)
-        self.changelog_view.set_cursor_visible(False)
-        self.changelog_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        self.changelog_view.get_style_context().add_class("changelog-view")
-        
-        changelog_buffer = self.changelog_view.get_buffer()
-        if changelog:
-            for change in changelog:
-                changelog_buffer.insert_at_cursor(f"• {change}\n")
-        else:
-            changelog_buffer.insert_at_cursor("No specific changes listed for this version.\n")
-        
-        scrolled_window.add(self.changelog_view)
-        main_vbox.pack_start(scrolled_window, True, True, 0)
-
-        self.progress_bar = Gtk.ProgressBar()
-        self.progress_bar.set_no_show_all(True)
-        self.progress_bar.set_visible(False)
-        main_vbox.pack_start(self.progress_bar, False, False, 5)
+        # --- VTE Terminal Widget ---
+        self.terminal = Vte.Terminal()
+        self.terminal.set_vexpand(True)
+        self.terminal.set_hexpand(True)
+        self.terminal.set_font_scale(1.0) # Ajustar según preferencia
+        # Colores opcionales (ejemplo: fondo oscuro, texto claro)
+        # self.terminal.set_color_background(Gdk.RGBA(0.1, 0.1, 0.1, 1.0))
+        # self.terminal.set_color_foreground(Gdk.RGBA(0.9, 0.9, 0.9, 1.0))
+        main_vbox.pack_start(self.terminal, True, True, 5)
+        # --- FIN VTE Terminal ---
 
         action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        action_box.set_halign(Gtk.Align.END)
+        action_box.set_halign(Gtk.Align.END) # Alinea los botones a la derecha
         main_vbox.pack_start(action_box, False, False, 10)
 
-        self.update_button = Gtk.Button(name="update-button", label="Update and Restart")
-        self.update_button.get_style_context().add_class("suggested-action")
-        self.update_button.connect("clicked", self.on_update_clicked)
-        action_box.pack_end(self.update_button, False, False, 0)
+        self.run_button = Gtk.Button(name="run-button", label="Run Install Script")
+        self.run_button.get_style_context().add_class("suggested-action")
+        self.run_button.connect("clicked", self.on_run_script_clicked)
+        action_box.pack_end(self.run_button, False, False, 0)
 
-        self.close_button = Gtk.Button(name="later-button", label="Later")
-        # ANTES: self.close_button.connect("clicked", lambda _: self.destroy())
-        # DESPUÉS:
-        self.close_button.connect("clicked", self.on_later_clicked)
-        action_box.pack_end(self.close_button, False, False, 0)
+        self.later_button = Gtk.Button(name="later-button", label="Later")
+        self.later_button.connect("clicked", self.on_later_clicked)
+        action_box.pack_end(self.later_button, False, False, 0) # Pack end para orden Later | Run
 
         self.connect("destroy", self.on_window_destroyed)
 
-    # NUEVO MÉTODO
     def on_later_clicked(self, _widget):
         snooze_file_path = get_snooze_file_path()
         try:
@@ -257,90 +196,111 @@ class UpdateWindow(Gtk.Window):
             print(f"Error creating snooze file {snooze_file_path}: {e}")
         self.destroy()
 
-    def on_update_clicked(self, _widget):
-        self.update_button.set_sensitive(False)
-        self.close_button.set_sensitive(False)
+    def on_run_script_clicked(self, _widget):
+        self.run_button.set_sensitive(False)
+        self.later_button.set_sensitive(False) # Deshabilitar 'Later' una vez iniciado
 
-        self.progress_bar.set_visible(True)
-        self.progress_bar.set_text("Initializing update...")
-        self.progress_bar.set_show_text(True)
-        self.progress_bar.pulse()
+        # Comando a ejecutar en el terminal
+        # Es importante que el shell (-c) maneje la tubería correctamente.
+        command_to_run = "curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | bash"
         
-        self.pulse_timeout_id = GLib.timeout_add(100, self.pulse_progress_bar_tick)
-        threading.Thread(target=self.run_update_process, daemon=True).start()
+        argv = ["/bin/bash", "-c", command_to_run]
 
-    def pulse_progress_bar_tick(self):
-        self.progress_bar.pulse()
-        return True  # Keep timeout active
-
-    def run_update_process(self):
         try:
-            GLib.idle_add(self.progress_bar.set_text, "Updating version information...")
-            update_local_version_file()
+            self.terminal.spawn_async(
+                Vte.PtyFlags.DEFAULT,  # pty_flags
+                None,                  # working_directory
+                argv,                  # argv
+                [],                    # envv
+                GLib.SpawnFlags.DO_NOT_REAP_CHILD | GLib.SpawnFlags.SEARCH_PATH, # spawn_flags
+                None,                  # child_setup
+                None,                  # child_setup_data
+                -1,                    # timeout
+                None,                  # cancellable
+                self.on_script_finished, # callback
+                None                   # user_data
+            )
+            self.terminal.grab_focus() # Poner el foco en el terminal
+        except GLib.Error as e:
+            print(f"Error spawning terminal command: {e.message}")
+            self.show_message_dialog("Error", f"Failed to start script: {e.message}", Gtk.MessageType.ERROR)
+            self.run_button.set_sensitive(True)
+            self.later_button.set_sensitive(True)
 
-            GLib.idle_add(self.progress_bar.set_text, "Downloading updates (git pull)...")
-            update_local_repo(lambda line: GLib.idle_add(self.git_progress_callback, line))
+    def on_script_finished(self, terminal, pid, status, _user_data):
+        # Llamado cuando el proceso en el VTE termina.
+        # Es importante hacer las actualizaciones de UI en el hilo principal de GTK.
+        GLib.idle_add(self._handle_script_completion, status)
+
+    def _handle_script_completion(self, status):
+        # Esta función se ejecuta en el hilo principal de GTK.
+        if status == 0: # Éxito (código de salida 0)
+            print("Ax-Shell installation script executed successfully.")
             
-            GLib.idle_add(self.handle_update_success)
-        except Exception as e:
-            print(f"Update process failed: {e}")
-            GLib.idle_add(self.handle_update_failure, str(e))
-            
-    def git_progress_callback(self, line):
-        self.progress_bar.pulse()
-        # print(f"GIT: {line.strip()}") # Uncomment for verbose git output
+            # 1. Eliminar archivo snooze
+            snooze_file_path = get_snooze_file_path()
+            if os.path.exists(snooze_file_path):
+                try:
+                    os.remove(snooze_file_path)
+                    print(f"Snooze file removed: {snooze_file_path}")
+                except Exception as e:
+                    print(f"Error removing snooze file {snooze_file_path}: {e}")
 
-    def handle_update_success(self):
-        if hasattr(self, "pulse_timeout_id"):
-            GLib.source_remove(self.pulse_timeout_id)
-            delattr(self, "pulse_timeout_id")
-        
-        self.progress_bar.set_text("Update Complete. Restarting application...")
-        self.progress_bar.set_fraction(1.0)
+            # 2. (Opcional) Actualizar el archivo de versión local.
+            #    Esto asume que REMOTE_VERSION_FILE fue descargado por fetch_remote_version()
+            #    y representa la versión que el script acaba de instalar/configurar.
+            try:
+                update_local_version_file()
+            except Exception as e:
+                print(f"Note: Could not update local version file post-script: {e}")
 
-        GLib.timeout_add_seconds(2, self.trigger_restart_and_close)
-        
+            self.show_message_dialog(
+                "Script Finished",
+                "The Ax-Shell installation script has completed successfully. The application will now attempt to restart.",
+                Gtk.MessageType.INFO,
+                lambda: self.trigger_restart_and_close() # Callback para después de cerrar el diálogo
+            )
+        else:
+            print(f"Ax-Shell installation script failed with status: {status}")
+            self.show_message_dialog(
+                "Script Failed",
+                f"The script exited with status code: {status}. Check the terminal output for details.",
+                Gtk.MessageType.ERROR
+            )
+            self.run_button.set_sensitive(True) # Permitir reintentar
+            self.later_button.set_sensitive(True)
+
     def trigger_restart_and_close(self):
-        self.destroy() # Close window first
+        self.destroy()
+        # Funciones originales para reiniciar la aplicación principal
         kill_processes()
         run_disowned_command()
-        return False # Stop GLib timeout
+        return False # Para GLib si se usa en timeout
 
-    def handle_update_failure(self, error_message):
-        if hasattr(self, "pulse_timeout_id"):
-            GLib.source_remove(self.pulse_timeout_id)
-            delattr(self, "pulse_timeout_id")
-        
-        self.progress_bar.set_text(f"Update Failed.") # Keep it short on bar
-        self.progress_bar.set_fraction(0.0)
-        
-        self.update_button.set_sensitive(True)
-        self.close_button.set_sensitive(True)
-
-        error_dialog = Gtk.MessageDialog(
+    def show_message_dialog(self, title, message, message_type, callback_on_ok=None):
+        dialog = Gtk.MessageDialog(
             transient_for=self,
-            flags=0,
-            message_type=Gtk.MessageType.ERROR,
+            flags=0, # Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT
+            message_type=message_type,
             buttons=Gtk.ButtonsType.OK,
-            text="Update Failed",
+            text=title,
         )
-        error_dialog.format_secondary_text(error_message)
-        error_dialog.run()
-        error_dialog.destroy()
+        dialog.format_secondary_text(message)
+        if callback_on_ok:
+            dialog.connect("response", lambda d, response_id: [d.destroy(), callback_on_ok() if response_id == Gtk.ResponseType.OK else d.destroy()])
+        else:
+            dialog.connect("response", lambda d, response_id: d.destroy())
+        dialog.show_all()
+
 
     def on_window_destroyed(self, _widget):
-        if hasattr(self, "pulse_timeout_id"): # Clean up timer if window closed prematurely
-            GLib.source_remove(self.pulse_timeout_id)
-            delattr(self, "pulse_timeout_id")
-        
+        # Cualquier limpieza necesaria si la ventana se cierra prematuramente
         if self.quit_gtk_main_on_destroy:
-             Gtk.main_quit()
+            Gtk.main_quit()
 
-
-# --- Update Checking Logic ---
+# --- Update Checking Logic (Lógica de comprobación de actualizaciones) ---
 def _initiate_update_check_flow(is_standalone_mode):
-    global _QUIT_GTK_IF_NO_WINDOW_STANDALONE # Used by standalone execution path
-
+    global _QUIT_GTK_IF_NO_WINDOW_STANDALONE
     if not is_connected():
         print("No internet connection. Skipping update check.")
         if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
@@ -351,69 +311,107 @@ def _initiate_update_check_flow(is_standalone_mode):
     if os.path.exists(snooze_file_path):
         try:
             with open(snooze_file_path, "r") as f:
-                snooze_timestamp_str = f.read().strip()
-                snooze_timestamp = float(snooze_timestamp_str)
-            
-            current_time = time.time()
-            if current_time - snooze_timestamp < SNOOZE_DURATION_SECONDS:
-                snooze_until_time = snooze_timestamp + SNOOZE_DURATION_SECONDS
-                snooze_until_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(snooze_until_time))
+                snooze_timestamp = float(f.read().strip())
+            if time.time() - snooze_timestamp < SNOOZE_DURATION_SECONDS:
+                snooze_until_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(snooze_timestamp + SNOOZE_DURATION_SECONDS))
                 print(f"Update check snoozed. Will check again after {snooze_until_time_str}.")
                 if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
                     GLib.idle_add(Gtk.main_quit)
-                return # Don't show update
+                return
             else:
-                print("Snooze period expired. Removing snooze file and checking for updates.")
+                print("Snooze period expired. Removing snooze file.")
                 os.remove(snooze_file_path)
-        except ValueError:
-            print(f"Error: Snooze file content is not a valid timestamp. Removing: {snooze_file_path}")
+        except Exception as e:
+            print(f"Error processing snooze file {snooze_file_path}: {e}. Removing and proceeding.")
             try:
                 os.remove(snooze_file_path)
             except OSError as e_remove:
-                print(f"Error removing corrupted snooze file: {e_remove}")
-        except Exception as e_snooze:
-            print(f"Error processing snooze file {snooze_file_path}: {e_snooze}. Proceeding with update check.")
-            try:
-                os.remove(snooze_file_path)
-            except OSError as e_remove_generic:
-                print(f"Error removing problematic snooze file: {e_remove_generic}")
-
-    fetch_remote_version()
-
+                print(f"Error removing problematic snooze file: {e_remove}")
+    
+    print("Fetching remote version information...")
+    fetch_remote_version() # Descarga REMOTE_VERSION_FILE
     current_version, _ = get_local_version()
-    latest_version, changelog, _ = get_remote_version()
+    latest_version, changelog, _ = get_remote_version() # Lee de REMOTE_VERSION_FILE
 
-    # Basic version comparison (can be improved with packaging.version for robustness)
+    print(f"Current version: {current_version}, Latest version: {latest_version}")
+
+    # Compara versiones (mejorar con packaging.version para semver robusto si es necesario)
     if latest_version > current_version and latest_version != "0.0.0":
+        print(f"New version {latest_version} found. Current is {current_version}.")
         GLib.idle_add(launch_update_window, latest_version, changelog, is_standalone_mode)
     else:
-        print(f"{data.APP_NAME_CAP} is up to date or remote version is invalid.")
+        print(f"{data.APP_NAME_CAP} is up to date or remote version is invalid ({latest_version} vs {current_version}).")
+        if os.path.exists(REMOTE_VERSION_FILE): # Limpiar el archivo temporal si no hay actualización
+            try:
+                os.remove(REMOTE_VERSION_FILE)
+            except OSError:
+                pass # No es crítico
         if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
             GLib.idle_add(Gtk.main_quit)
-
 
 def launch_update_window(latest_version, changelog, is_standalone_mode):
     win = UpdateWindow(latest_version, changelog, is_standalone_mode)
     if is_standalone_mode:
-        win.quit_gtk_main_on_destroy = True # Ensure Gtk.main_quit on window close
+        win.quit_gtk_main_on_destroy = True
     win.show_all()
+    # Si hay un terminal, es bueno darle foco.
+    if hasattr(win, 'terminal'):
+        win.terminal.grab_focus()
 
 
 def check_for_updates():
     """
-    Public function to check for updates. Runs checks in a background thread.
-    This is intended for use as a module.
+    Función pública para verificar actualizaciones. Ejecuta las verificaciones en un hilo separado.
     """
     thread = threading.Thread(target=_initiate_update_check_flow, args=(False,), daemon=True)
     thread.start()
 
-
 def run_updater():
+    """
+    Función principal para ejecutar el actualizador como una aplicación independiente.
+    """
+    global _QUIT_GTK_IF_NO_WINDOW_STANDALONE
     _QUIT_GTK_IF_NO_WINDOW_STANDALONE = True 
     
-    # Run the update check logic in a thread.
-    # This thread will use GLib.idle_add to interact with Gtk.main loop.
+    # Es importante que las operaciones GTK se inicien desde el hilo principal,
+    # pero _initiate_update_check_flow puede usar GLib.idle_add para la UI.
     update_check_thread = threading.Thread(target=_initiate_update_check_flow, args=(True,), daemon=True)
     update_check_thread.start()
     
     Gtk.main()
+
+# --- Punto de entrada para ejecución directa (opcional, para probar) ---
+if __name__ == "__main__":
+    # Para probar este script directamente, necesitarás un mock de `config.data`
+    # y `fabric.utils.helpers.get_relative_path` o ajustar las rutas.
+    # Ejemplo de mock básico:
+    class MockData:
+        APP_NAME = "MyTestApp"
+        APP_NAME_CAP = "MyTestApp"
+        CACHE_DIR = os.path.expanduser(f"~/.cache/{APP_NAME}")
+        HOME_DIR = os.path.expanduser("~")
+
+    data = MockData() # Sobrescribir el import con el mock
+
+    # Mockear get_relative_path si es necesario o ajustar VERSION_FILE
+    def mock_get_relative_path(path_from_current_file):
+        # Asumir que version.json está en el mismo dir que este script para la prueba
+        if path_from_current_file == "../utils/version.json":
+            return os.path.join(os.path.dirname(__file__), "version.json")
+        return path_from_current_file
+    
+    get_relative_path = mock_get_relative_path
+    VERSION_FILE = get_relative_path("../utils/version.json") # Re-evaluar con mock
+
+    # Crear un version.json de ejemplo para probar
+    if not os.path.exists(VERSION_FILE):
+        os.makedirs(os.path.dirname(VERSION_FILE), exist_ok=True)
+        with open(VERSION_FILE, "w") as f:
+            json.dump({"version": "0.0.1", "changelog": ["Initial test version"]}, f)
+            print(f"Created dummy version file: {VERSION_FILE}")
+    
+    # Asegurar que el directorio de caché exista para el snooze file
+    os.makedirs(data.CACHE_DIR, exist_ok=True)
+
+    print("Running updater in standalone test mode...")
+    run_updater()
