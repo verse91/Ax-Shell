@@ -276,6 +276,8 @@ class UpdateWindow(Gtk.Window):
             # Creamos la terminal VTE
             self.vte_terminal = Vte.Terminal()
             self.vte_terminal.set_size(120, 48)
+            # Make update window larger
+            self.set_default_size(720, 540)
             self.terminal_container.add(self.vte_terminal)
             # Insertamos la terminal al final del main_vbox
             self.main_vbox.pack_start(self.terminal_container, True, True, 0)
