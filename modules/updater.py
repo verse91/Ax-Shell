@@ -114,34 +114,6 @@ def update_local_version_file():
             raise
 
 
-def kill_processes():
-    """
-    Mata los procesos de la aplicación original antes de reiniciar.
-    """
-    subprocess.run(["pkill", data.APP_NAME], check=False)
-
-
-def run_disowned_command():
-    """
-    Lanza la aplicación nuevamente en background usando uwsgi, similar al comportamiento original.
-    """
-    try:
-        command = (
-            f"bash -c 'killall -q {data.APP_NAME}; sleep 0.2; "
-            f"uwsm app -- python {data.HOME_DIR}/.config/{data.APP_NAME_CAP}/main.py'"
-        )
-        subprocess.Popen(
-            command,
-            shell=True,
-            start_new_session=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        print(f"{data.APP_NAME_CAP} proceso reiniciado en background.")
-    except Exception as e:
-        print(f"Error reiniciando {data.APP_NAME_CAP} en background: {e}")
-
-
 def is_connected():
     """
     Verifica conectividad básica intentando conectar a www.google.com:80.
@@ -351,8 +323,6 @@ class UpdateWindow(Gtk.Window):
         Cierra la ventana y relanza la aplicación.
         """
         self.destroy()
-        kill_processes()
-        run_disowned_command()
         return False  # Para que el timeout se ejecute solo una vez
 
     def handle_update_failure(self, error_message):
