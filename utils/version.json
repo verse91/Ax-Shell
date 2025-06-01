@@ -1,8 +1,7 @@
 {
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"changelog": [
-		"Replaced wlinhibit with a custom implementation.",
-		"Questioned why I can't sleep. It's 5:30 AM.",
+		"fix: Caffeine toggle keybind was still using wlinhibit",
     "Herobrine removed."
 	]
 }
