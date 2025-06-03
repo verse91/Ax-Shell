@@ -1,5 +1,5 @@
 {
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"changelog": [
 		"<b>feat:</b> Clicking outside the notch closes it! (<a href='https://github.com/Axenide/Ax-Shell/pull/154'>#154</a>)",
     "<b>feat:</b> Unit and currency conversion (<a href='https://github.com/Axenide/Ax-Shell/pull/122'>#122</a>)",
