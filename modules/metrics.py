@@ -35,7 +35,7 @@ class MetricsProvider:
         self.disk = []
 
         self.upower = UPowerManager()
-        self.dislay_device = self.upower.get_display_device()
+        self.display_device = self.upower.get_display_device()
         self.bat_percent = 0.0
         self.bat_charging = None
         self.bat_time = 0
