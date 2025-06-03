@@ -509,20 +509,21 @@ class Notch(Window):
         return False
 
     def close_notch(self):
-        self.set_keyboard_mode("none")
-        self.notch_box.remove_style_class("open")
-        self.stack.remove_style_class("open")
+        if not self.dashboard.wallpapers.scheme_dropdown.get_property("popup-shown"):
+            self.set_keyboard_mode("none")
+            self.notch_box.remove_style_class("open")
+            self.stack.remove_style_class("open")
 
-        self.bar.revealer_right.set_reveal_child(True)
-        self.bar.revealer_left.set_reveal_child(True)
-        self.applet_stack.set_visible_child(self.nhistory)
-        self._is_notch_open = False
-        self.stack.set_visible_child(self.compact)
-        if data.PANEL_THEME != "Notch":
-            self.notch_revealer.set_reveal_child(False)
+            self.bar.revealer_right.set_reveal_child(True)
+            self.bar.revealer_left.set_reveal_child(True)
+            self.applet_stack.set_visible_child(self.nhistory)
+            self._is_notch_open = False
+            self.stack.set_visible_child(self.compact)
+            if data.PANEL_THEME != "Notch":
+                self.notch_revealer.set_reveal_child(False)
 
-        seat = Gdk.Display.get_default().get_default_seat()
-        seat.ungrab()
+            seat = Gdk.Display.get_default().get_default_seat()
+            seat.ungrab()
 
     def open_notch(self, widget_name: str, *args, **kwargs):
         self.notch_revealer.set_reveal_child(True)

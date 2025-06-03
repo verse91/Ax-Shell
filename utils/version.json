@@ -1,13 +1,8 @@
 {
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"changelog": [
-		"<b>feat:</b> Clicking outside the notch closes it! (<a href='https://github.com/Axenide/Ax-Shell/pull/154'>#154</a>)",
-    "<b>feat:</b> Unit and currency conversion (<a href='https://github.com/Axenide/Ax-Shell/pull/122'>#122</a>)",
-    "<b>feat:</b> Bluetooth audio indicator (<a href='https://github.com/Axenide/Ax-Shell/pull/142'>#142</a>)",
-    "<b>qol:</b> Kanban auto-scroll on add (<a href='https://github.com/Axenide/Ax-Shell/pull/118'>#118</a>)",
-    "<b>fix:</b> Clipboard manager UTF-8 encoding (<a href='https://github.com/Axenide/Ax-Shell/pull/143'>#143</a>)",
-    "<b>patch:</b> Enums for PyGObject >=3.51.0 NO MORE DOWNGRADING!!! (Thanks to <a href='https://github.com/FakeMichau'>@FakeMichau</a>!)",
-    "<b>patch:</b> Patch fixed lol (<a href='https://github.com/Axenide/Ax-Shell/pull/157'>#157</a>)",
+    "<b>qol:</b> Tooltips everywhere",
+    "<b>fix:</b> Notch/Panel closing when clicking the color-scheme selector",
     "Herobrine removed."
 	]
 }
