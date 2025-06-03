@@ -1,11 +1,11 @@
 {
 	"version": "0.0.4",
 	"changelog": [
-		"feat: Clicking outside the notch closes it! (<a href='https://github.com/Axenide/Ax-Shell/pull/154'>#154</a>)",
-    "feat: Unit and currency conversion (<a href='https://github.com/Axenide/Ax-Shell/pull/122'>#122</a>)",
-    "feat: Bluetooth audio indicator (<a href='https://github.com/Axenide/Ax-Shell/pull/142'>#142</a>)",
-    "qol: Kanban auto-scroll on add (<a href='https://github.com/Axenide/Ax-Shell/pull/118'>#118</a>)",
-    "fix: Clipboard manager UTF-8 encoding (<a href='https://github.com/Axenide/Ax-Shell/pull/143'>#143</a>)",
+		"<b>feat:</b> Clicking outside the notch closes it! (<a href='https://github.com/Axenide/Ax-Shell/pull/154'>#154</a>)",
+    "<b>feat:</b> Unit and currency conversion (<a href='https://github.com/Axenide/Ax-Shell/pull/122'>#122</a>)",
+    "<b>feat:</b> Bluetooth audio indicator (<a href='https://github.com/Axenide/Ax-Shell/pull/142'>#142</a>)",
+    "<b>qol:</b> Kanban auto-scroll on add (<a href='https://github.com/Axenide/Ax-Shell/pull/118'>#118</a>)",
+    "<b>fix:</b> Clipboard manager UTF-8 encoding (<a href='https://github.com/Axenide/Ax-Shell/pull/143'>#143</a>)",
     "Herobrine removed."
 	]
 }

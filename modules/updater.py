@@ -23,7 +23,7 @@ import config.data as data
 # File locations
 VERSION_FILE = get_relative_path("../utils/version.json")
 REMOTE_VERSION_FILE = "/tmp/remote_version.json"
-REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/main/utils/version.json"
+REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/dev/utils/version.json"
 REPO_DIR = get_relative_path("../")
 
 SNOOZE_FILE_NAME = "updater_snooze.txt"
@@ -177,8 +177,8 @@ class UpdateWindow(Gtk.Window):
         self.changelog_label = Gtk.Label()
         self.changelog_label.set_xalign(0)
         self.changelog_label.set_yalign(0)
-        self.changelog_label.set_line_wrap(True)
-        self.changelog_label.set_selectable(True)
+        self.changelog_label.set_line_wrap(Gtk.WrapMode.WORD_CHAR)
+        self.changelog_label.set_selectable(False)
         self.changelog_label.set_markup(joined)
 
         scrolled_window.add(self.changelog_label)
