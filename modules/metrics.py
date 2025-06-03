@@ -500,7 +500,7 @@ class Battery(Button):
         if percentage == 100 and charging == False:
             self.bat_icon.set_markup(icons.battery)
             charging_status = f"{icons.bat_full} Fully Charged - {time_status} left"
-        elif percentage == 100 and charging == False:
+        elif percentage == 100 and charging == True:
             self.bat_icon.set_markup(icons.battery)
             charging_status = f"{icons.bat_full} Fully Charged"
         elif charging == True:
