@@ -133,6 +133,13 @@ class Notch(Window):
             all_visible=True,
         )
 
+        # 1. Add event mask for button press to the window
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        # 2. Connect to the window's button-press-event
+        self.connect("button-press-event", self._on_window_button_press)
+        # 3. Connect to focus-out-event
+        self.connect("focus-out-event", self._on_focus_out)
+
         self._typed_chars_buffer = ""
         self._launcher_transitioning = False
         self._launcher_transition_timeout = None
@@ -519,12 +526,30 @@ class Notch(Window):
             seat = Gdk.Display.get_default().get_default_seat()
             seat.ungrab()
 
-    def open_notch(self, widget_name: str):
+        if data.PANEL_THEME == "Notch":
+            seat = Gdk.Display.get_default().get_default_seat()
+            seat.ungrab()
+
+    def open_notch(self, widget_name: str, *args, **kwargs):
         self.notch_revealer.set_reveal_child(True)
         self.notch_box.add_style_class("open")
         self.stack.add_style_class("open")
         current_stack_child = self.stack.get_visible_child()
-        is_dashboard_currently_visible = (current_stack_child == self.dashboard)
+        is_dashboard_currently_visible = current_stack_child == self.dashboard
+
+        if data.PANEL_THEME == "Notch":
+            seat = Gdk.Display.get_default().get_default_seat()
+            if self.get_window() is None:
+                self.realize()
+
+            seat.grab(
+                self.get_window(),
+                Gdk.SeatCapabilities.POINTER,
+                True,
+                None,
+                None,
+                Gdk.Event,
+            )
 
         if data.PANEL_THEME == "Notch":
             seat = Gdk.Display.get_default().get_default_seat()
