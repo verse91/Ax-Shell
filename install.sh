@@ -25,6 +25,7 @@ PACKAGES=(
   noto-fonts-emoji
   nvtop
   playerctl
+  python-currencyconverter
   python-fabric-git
   python-ijson
   python-numpy
