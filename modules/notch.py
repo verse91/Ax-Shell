@@ -981,7 +981,7 @@ class Notch(Window):
             
             if is_valid_char and keychar:
 
-                self._typed_chars_buffer += keychar
+             d   self._typed_chars_buffer += keychar
                 print(f"Buffered character: {keychar}, buffer now: '{self._typed_chars_buffer}'")
                 return True
         
