@@ -162,26 +162,26 @@ class UpdateWindow(Gtk.Window):
         changelog_header_label.set_xalign(0)
         self.main_vbox.pack_start(changelog_header_label, False, False, 5)
 
-        # Ventana scrolleable para el changelog
+        # — Ventana scrolleable para el changelog (ahora usando Gtk.Label con markup) —
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_hexpand(True)
         scrolled_window.set_vexpand(True)
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
-        self.changelog_view = Gtk.TextView()
-        self.changelog_view.set_editable(False)
-        self.changelog_view.set_cursor_visible(False)
-        self.changelog_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        self.changelog_view.get_style_context().add_class("changelog-view")
-
-        changelog_buffer = self.changelog_view.get_buffer()
         if changelog:
-            for change in changelog:
-                changelog_buffer.insert_at_cursor(f"• {change}\n")
+            # Cada entry ya puede contener etiquetas Pango (<b>, <i>, etc.)
+            joined = "\n".join(f"• {change}" for change in changelog)
         else:
-            changelog_buffer.insert_at_cursor("No specific changes listed for this version.\n")
+            joined = "No specific changes listed for this version."
 
-        scrolled_window.add(self.changelog_view)
+        self.changelog_label = Gtk.Label()
+        self.changelog_label.set_xalign(0)
+        self.changelog_label.set_yalign(0)
+        self.changelog_label.set_line_wrap(True)
+        self.changelog_label.set_selectable(True)
+        self.changelog_label.set_markup(joined)
+
+        scrolled_window.add(self.changelog_label)
         self.main_vbox.pack_start(scrolled_window, True, True, 0)
 
         # ProgressBar (se mostrará si queremos indicar estado, aunque al usar VTE queda sin uso)
