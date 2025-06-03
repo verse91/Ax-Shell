@@ -89,8 +89,8 @@ curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | 
     - `webp-pixbuf-loader`
     - `wl-clipboard`
     - `wlinhibit`
-    - `python-currencyconvertor`
     - Python dependencies:
+        - currencyconverter
         - ijson
         - numpy
         - pillow
