@@ -457,7 +457,6 @@ class Notch(Window):
         )
 
         if not (is_inside_x and is_inside_y):
-            print("Clicked outside Notch window!") 
             self.close_notch()
             return True  # Event handled, stop propagation
 
@@ -470,7 +469,6 @@ class Notch(Window):
         If it's open and loses focus, close it.
         """
         if self._is_notch_open:
-            print("Notch lost focus, closing.")
             self.close_notch()
             return True
         return False
@@ -526,10 +524,6 @@ class Notch(Window):
             seat = Gdk.Display.get_default().get_default_seat()
             seat.ungrab()
 
-        if data.PANEL_THEME == "Notch":
-            seat = Gdk.Display.get_default().get_default_seat()
-            seat.ungrab()
-
     def open_notch(self, widget_name: str, *args, **kwargs):
         self.notch_revealer.set_reveal_child(True)
         self.notch_box.add_style_class("open")
@@ -542,14 +536,7 @@ class Notch(Window):
             if self.get_window() is None:
                 self.realize()
 
-            seat.grab(
-                self.get_window(),
-                Gdk.SeatCapabilities.POINTER,
-                True,
-                None,
-                None,
-                Gdk.Event,
-            )
+            seat.grab(self.get_window(), Gdk.SeatCapabilities.POINTER, True, None, None, Gdk.Event)
 
         if data.PANEL_THEME == "Notch":
             seat = Gdk.Display.get_default().get_default_seat()
