@@ -1,12 +1,12 @@
 {
-	"version": "0.0.5",
+	"version": "0.0.4",
 	"changelog": [
 		"<b>feat:</b> Clicking outside the notch closes it! (<a href='https://github.com/Axenide/Ax-Shell/pull/154'>#154</a>)",
     "<b>feat:</b> Unit and currency conversion (<a href='https://github.com/Axenide/Ax-Shell/pull/122'>#122</a>)",
     "<b>feat:</b> Bluetooth audio indicator (<a href='https://github.com/Axenide/Ax-Shell/pull/142'>#142</a>)",
     "<b>qol:</b> Kanban auto-scroll on add (<a href='https://github.com/Axenide/Ax-Shell/pull/118'>#118</a>)",
     "<b>fix:</b> Clipboard manager UTF-8 encoding (<a href='https://github.com/Axenide/Ax-Shell/pull/143'>#143</a>)",
-    "<b>patch:</b> Enums for PyGObject >=3.51.0 NO MORE DOWNGRADING!!! (Thanks to <a href='https://github.com/FakeMichau?tab=overview&from=2025-01-01&to=2025-01-31'>@FakeMichau</a>!)",
+    "<b>patch:</b> Enums for PyGObject >=3.51.0 NO MORE DOWNGRADING!!! (Thanks to <a href='https://github.com/FakeMichau'>@FakeMichau</a>!)",
     "Herobrine removed."
 	]
 }
