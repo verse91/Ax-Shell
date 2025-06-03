@@ -520,9 +520,9 @@ class Notch(Window):
         self.stack.set_visible_child(self.compact)
         if data.PANEL_THEME != "Notch":
             self.notch_revealer.set_reveal_child(False)
-        if data.PANEL_THEME == "Notch":
-            seat = Gdk.Display.get_default().get_default_seat()
-            seat.ungrab()
+
+        seat = Gdk.Display.get_default().get_default_seat()
+        seat.ungrab()
 
     def open_notch(self, widget_name: str, *args, **kwargs):
         self.notch_revealer.set_reveal_child(True)
@@ -531,19 +531,11 @@ class Notch(Window):
         current_stack_child = self.stack.get_visible_child()
         is_dashboard_currently_visible = current_stack_child == self.dashboard
 
-        if data.PANEL_THEME == "Notch":
-            seat = Gdk.Display.get_default().get_default_seat()
-            if self.get_window() is None:
-                self.realize()
+        seat = Gdk.Display.get_default().get_default_seat()
+        if self.get_window() is None:
+            self.realize()
 
-            seat.grab(self.get_window(), Gdk.SeatCapabilities.POINTER, True, None, None, Gdk.Event)
-
-        if data.PANEL_THEME == "Notch":
-            seat = Gdk.Display.get_default().get_default_seat()
-            if self.get_window() is None:
-                self.realize()
-
-            seat.grab(self.get_window(), Gdk.SeatCapabilities.POINTER, True, None, None, Gdk.Event)
+        seat.grab(self.get_window(), Gdk.SeatCapabilities.POINTER, True, None, None, Gdk.Event)
     
         if widget_name == "network_applet":
             if is_dashboard_currently_visible:
