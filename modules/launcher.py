@@ -293,7 +293,7 @@ class AppLauncher(Box):
             case ":p":
                 self.notch.open_notch("power")
             case ":update":
-                GLib.idle_add(run_updater)
+                GLib.idle_add(lambda: run_updater(force=True))
             case _:
                 children = self.viewport.get_children()
                 if children:
