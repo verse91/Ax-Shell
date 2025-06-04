@@ -1,9 +1,7 @@
 {
 	"version": "0.0.7",
 	"changelog": [
-    "<b>qol:</b> Tooltips everywhere.",
-    "<b>temp fix:</b> Notch/Panel closing when clicking outside disabled because of issues.",
-    "<b>dep:</b> Added python-gobject. (It was supposed to be installed as a dependency for Fabric, but it wasn't.)",
+    "<b>fix:</b> Tabler Icons font not being recognized by some systems. (<a href='https://github.com/Axenide/Ax-Shell/pull/146'>#146</a>)\nYou can safely delete <code>~/.fonts/tabler-icons/</code> after updating. (Or leave it, it won't cause any issues.)",
     "Herobrine removed."
 	]
 }
