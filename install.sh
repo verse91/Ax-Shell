@@ -26,6 +26,7 @@ PACKAGES=(
   nvtop
   playerctl
   python-fabric-git
+  python-gobject
   python-ijson
   python-numpy
   python-pillow

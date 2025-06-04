@@ -1,8 +1,9 @@
 {
 	"version": "0.0.7",
 	"changelog": [
-    "<b>qol:</b> Tooltips everywhere",
-    "<b>fix:</b> Notch/Panel closing when clicking the color-scheme selector",
+    "<b>qol:</b> Tooltips everywhere.",
+    "<b>temp fix:</b> Notch/Panel closing when clicking outside disabled because of issues.",
+    "<b>dep:</b> Added python-gobject. (It was supposed to be installed as a dependency for Fabric, but it wasn't.)",
     "Herobrine removed."
 	]
 }

@@ -90,6 +90,7 @@ curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | 
     - `wl-clipboard`
     - `wlinhibit`
     - Python dependencies:
+        - PyGObject
         - ijson
         - numpy
         - pillow
