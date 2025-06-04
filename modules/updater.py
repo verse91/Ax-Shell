@@ -24,7 +24,7 @@ import config.data as data
 # File locations
 VERSION_FILE = get_relative_path("../utils/version.json")
 REMOTE_VERSION_FILE = "/tmp/remote_version.json"
-REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/main/utils/version.json"
+REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/main/version.json"
 REPO_DIR = get_relative_path("../")
 
 SNOOZE_FILE_NAME = "updater_snooze.txt"

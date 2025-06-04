@@ -42,6 +42,7 @@ PACKAGES=(
   tmux
   ttf-nerd-fonts-symbols-mono
   unzip
+  upower
   uwsm
   vte3
   webp-pixbuf-loader
