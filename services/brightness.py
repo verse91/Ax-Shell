@@ -2,17 +2,20 @@ import os
 import subprocess
 import re
 import time
+
+from fabric.core.service import Property, Service, Signal
+from fabric.utils import exec_shell_command_async, monitor_file
 from gi.repository import GLib
 from loguru import logger
-from fabric.core.service import Property, Service, Signal
-from fabric.utils import exec_shell_command_async
+
 import utils.functions as helpers
+from utils.colors import Colors
 
 class Brightness(Service):
     """Service for controlling screen brightness level in percent (0-100%) using ddcutil or brightnessctl backends."""
     
     instance = None
-    DDCUTIL_PARAMS = "--disable-dynamic-sleep --sleep-multiplier=0.05 --noverify"
+    DDCUTIL_PARAMS = "--disable-dynamic-sleep --sleep-multiplier=0.05"
     MIN_CHANGE_THRESHOLD = 2  # Minimum brightness change to apply (percent)
     CACHE_INTERVAL = 3  # Cache duration in seconds
     POLL_INTERVAL = 500  # File polling interval in ms
@@ -148,6 +151,9 @@ class Brightness(Service):
     @Property(int, "read-write")
     def screen_brightness(self):
         """Getter returns current brightness in percent (0-100%)."""
+        if not self.backend:
+            return -1
+        
         if self.backend == "brightnessctl":
             # Return cached value if available
             if self._last_percent != -1:
