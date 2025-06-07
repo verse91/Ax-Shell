@@ -698,7 +698,7 @@ class Dock(Window):
             return
 
         def process_drag_end():
-            if self.get_mapped():
+            if not self.integrated_mode and self.get_mapped(): 
                 display = Gdk.Display.get_default()
                 _, x, y, _ = display.get_pointer()
                 window = self.get_window()
