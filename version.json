@@ -1,0 +1,7 @@
+{
+	"version": "0.0.10",
+	"changelog": [
+    "<b>fix:</b> Duplicated dock in panel mode + top position.",
+    "<b>tweak:</b> Version file moved to root."
+	]
+}

@@ -84,15 +84,19 @@ curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | 
     - `swww`
     - `tesseract`
     - `tmux`
+    - `upower`
     - `uwsm`
+    - `vte3`
     - `webp-pixbuf-loader`
     - `wl-clipboard`
     - `wlinhibit`
     - Python dependencies:
+        - PyGObject
         - ijson
         - numpy
         - pillow
         - psutil
+        - pywayland
         - requests
         - setproctitle
         - toml
@@ -120,6 +124,7 @@ curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | 
 - [x] Dock
 - [x] Emoji Picker
 - [x] Kanban Board
+- [x] Network Manager
 - [x] Notifications
 - [x] OCR
 - [x] Pins
@@ -131,12 +136,13 @@ curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | 
 - [x] System Tray
 - [x] Terminal
 - [x] Tmux Session Manager
+- [x] Update checker
 - [x] Vertical Layout
 - [x] Wallpaper Selector
 - [x] Workspaces Overview
 - [ ] Multi-monitor support
 - [ ] Multimodal AI Assistant
-- [ ] Network Manager
+- [ ] OSD
 - [ ] OTP Manager
 
 ---
