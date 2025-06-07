@@ -726,6 +726,8 @@ class Dock(Window):
                             exec_shell_command(f"hyprctl dispatch closewindow address:{instances[0]['address']}")
 
             self._drag_in_progress = False
+            if not self.integrated_mode:
+                self.check_occlusion_state()
 
         GLib.idle_add(process_drag_end)
     def check_config_change(self):
