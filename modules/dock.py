@@ -698,7 +698,7 @@ class Dock(Window):
             return
 
         def process_drag_end():
-            if not self.integrated_mode and self.get_mapped(): 
+            if self.integrated_mode and self.get_mapped():
                 display = Gdk.Display.get_default()
                 _, x, y, _ = display.get_pointer()
                 window = self.get_window()
@@ -707,23 +707,29 @@ class Dock(Window):
                 if window:
                     win_x, win_y, width, height = window.get_geometry()
                     if not (win_x <= x <= win_x + width and win_y <= y <= win_y + height):
-                        app_id = widget.app_identifier
-                        instances = widget.instances
+                        app_id_dragged = widget.app_identifier
+                        instances_dragged = widget.instances
 
                         # Remove pinned app
-                        if app_id in self.pinned:
-                            self.pinned.remove(app_id)
-                        elif isinstance(app_id, dict):
-                            self.pinned = [app for app in self.pinned if app.get("name") != app_id.get("name")]
+                        app_index_dragged = -1
+                        for i, pinned_app_item in enumerate(self.pinned):
+                            if isinstance(app_id_dragged, dict) and isinstance(pinned_app_item, dict):
+                                if app_id_dragged.get("name") == pinned_app_item.get("name"):
+                                    app_index_dragged = i
+                                    break
+                            elif app_id_dragged == pinned_app_item:
+                                app_index_dragged = i
+                                break
                         
-                        # Update config and dock
-                        self.config["pinned_apps"] = self.pinned
-                        self.update_pinned_apps_file()
-                        self.update_dock()
-
-                        # Close window if it's a running instance
-                        if instances and instances[0].get("address"):
-                            exec_shell_command(f"hyprctl dispatch closewindow address:{instances[0]['address']}")
+                        if app_index_dragged >= 0:
+                            self.pinned.pop(app_index_dragged)
+                            self.config["pinned_apps"] = self.pinned
+                            self.update_pinned_apps_file()
+                            self.update_dock()
+                        elif instances_dragged:
+                            address = instances_dragged[0].get("address")
+                            if address:
+                                exec_shell_command(f"hyprctl dispatch focuswindow address:{address}")
 
             self._drag_in_progress = False
             if not self.integrated_mode:
