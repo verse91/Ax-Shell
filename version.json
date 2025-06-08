@@ -1,9 +1,6 @@
 {
-	"version": "0.0.11",
+	"version": "0.0.12",
 	"changelog": [
-    "<b>fix:</b> Duplicated dock in panel mode + top position.",
-    "<b>fix:</b> Time module causing notch gap.",
-    "<b>fix:</b> Drag out to unpin from dock. (<a href='https://github.com/Axenide/Ax-Shell/pull/169'>#169</a>)",
-    "<b>tweak:</b> Version file moved to root."
+    "<b>fix:</b> swww changed to swww-git"
 	]
 }
