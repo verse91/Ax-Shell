@@ -343,6 +343,14 @@ class Conversion():
                     to_kelvin = chart[from_type][0]
                     from_kelvin = chart[to_type][1]
                     return from_kelvin(to_kelvin(value))
+                
+                # Handle WEIGHT_CHART separately (tuple values)
+                if chart_name == "WEIGHT_CHART":
+                    if from_type == to_type:
+                        return value
+                    to_kg = chart[from_type][0]
+                    from_kg = chart[to_type][1]
+                    return value * to_kg * from_kg
 
                 # Handle other conversions (uses direct multiplication/division)
                 if from_type == to_type:
