@@ -109,6 +109,7 @@ class Units():
             "s": 1,
             "minute": 60,
             "min": 60,
+            "m": 60,
             "hour": 3600,
             "h": 3600,
             "milisecond": 1e-3,
@@ -119,7 +120,7 @@ class Units():
             "w": 604800,
             "fortnight": 1209600,
             "month": 2628000,  # Approximation (30.44 days)
-            "m": 2628000,  # Approximation (30.44 days)
+            "mo": 2628000,  # Approximation (30.44 days)
             "year": 31536000,  # Approximation (365 days)
             "yr": 31536000,  # Approximation (365 days)
             "decade": 315360000,  # Approximation (10 years)
