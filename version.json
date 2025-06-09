@@ -1,7 +1,7 @@
 {
-	"version": "0.0.13",
+	"version": "0.0.14",
 	"changelog": [
-    "<b>fix:</b> swww changed to swww-git",
-    "<b>fix:</b> Reverted notch to previous commit"
+    "<b>fix:</b> Weight conversion not working (<a href='https://github.com/Axenide/Ax-Shell/pull/173'>#173</a>)",
+    "<b>fix:</b> Integrated dock drag and drop (<a href='https://github.com/Axenide/Ax-Shell/pull/174'>#174</a>)"
 	]
 }
