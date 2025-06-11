@@ -1,6 +1,6 @@
 import gi
 
-gi.require_version('Gtk', '3.0')
+gi.require_version("Gtk", "3.0")
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
 from fabric.widgets.stack import Stack
@@ -29,13 +29,14 @@ class Widgets(Box):
         )
 
         vertical_layout = False
-        if data.PANEL_THEME == "Panel" and (data.BAR_POSITION in ["Left", "Right"] or data.PANEL_POSITION in ["Start", "End"]):
+        if data.PANEL_THEME == "Panel" and (
+            data.BAR_POSITION in ["Left", "Right"]
+            or data.PANEL_POSITION in ["Start", "End"]
+        ):
             vertical_layout = True
 
-        # Determinar el modo de vista del calendario
         calendar_view_mode = "week" if vertical_layout else "month"
-        
-        # Instanciar Calendar con el view_mode apropiado
+
         self.calendar = Calendar(view_mode=calendar_view_mode)
 
         self.notch = kwargs["notch"]
@@ -62,8 +63,6 @@ class Widgets(Box):
 
         self.controls = ControlSliders()
 
-        # self.calendar ya está inicializado arriba con el view_mode correcto
-
         self.player = Player()
 
         self.metrics = Metrics()
@@ -80,7 +79,7 @@ class Widgets(Box):
                 self.notification_history,
                 self.network_connections,
                 self.bluetooth,
-            ]
+            ],
         )
 
         self.applet_stack_box = Box(
@@ -90,11 +89,9 @@ class Widgets(Box):
             h_align="fill",
             children=[
                 self.applet_stack,
-            ]
+            ],
         )
 
-        # Modificar la definición de self.children_1 para usar self.calendar
-        # y ajustar la disposición para el modo vertical
         if not vertical_layout:
             self.children_1 = [
                 Box(
@@ -103,23 +100,18 @@ class Widgets(Box):
                     v_expand=True,
                     spacing=8,
                     children=[
-                        self.calendar,  # Usar la instancia self.calendar
+                        self.calendar,
                         self.applet_stack_box,
-                    ]
+                    ],
                 ),
                 self.metrics,
             ]
-        else: # vertical_layout es True
+        else:
             self.children_1 = [
-                self.calendar, # Usar la instancia self.calendar (será semanal aquí)
                 self.applet_stack_box,
+                self.calendar,  # Weekly view when vertical
                 self.player,
             ]
-            # En el diseño vertical, el reproductor se mueve aquí
-            # y las métricas podrían necesitar una reubicación o ser omitidas
-            # según el diseño deseado. Por ahora, se omite self.metrics
-            # si no está explícitamente en la nueva lista.
-            # Si self.player estaba en children_3, ahora está aquí.
 
         self.container_1 = Box(
             name="container-1",
@@ -140,26 +132,24 @@ class Widgets(Box):
                 self.buttons,
                 self.controls,
                 self.container_1,
-            ]
+            ],
         )
-        
-        # Ajustar children_3 según si el reproductor se movió
+
         if not vertical_layout:
             self.children_3 = [
                 self.player,
                 self.container_2,
             ]
-        else: # vertical_layout es True, self.player ya está en self.children_1
+        else:  # vertical_layout
             self.children_3 = [
                 self.container_2,
             ]
-
 
         self.container_3 = Box(
             name="container-3",
             h_expand=True,
             v_expand=True,
-            orientation="h", # Esta orientación podría necesitar ser "v" si todo es vertical
+            orientation="h",
             spacing=8,
             children=self.children_3,
         )

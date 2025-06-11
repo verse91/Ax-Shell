@@ -49,13 +49,17 @@ class Calendar(Gtk.Box):
             self.current_month = self.current_shown_date.month # Para el header
             iso_year, iso_week, _ = self.current_shown_date.isocalendar()
             self.previous_key = (iso_year, iso_week)
+            self.set_halign(Gtk.Align.FILL)
+            self.set_hexpand(True)
+            self.set_valign(Gtk.Align.CENTER)
+            self.set_vexpand(False)
         
         self.cache_threshold = 3 # Umbral para mantener vistas en caché
 
         self.month_views = {} # Reutilizado para vistas de semana también
 
         self.prev_button = Gtk.Button( # Nombre genérico del botón
-            name="prev-button", 
+            name="prev-month-button", 
             child=Label(name="month-button-label", markup=icons.chevron_left) # CSS puede ser genérico
         )
         self.prev_button.connect("clicked", self.on_prev_clicked)
@@ -63,7 +67,7 @@ class Calendar(Gtk.Box):
         self.month_label = Gtk.Label(name="month-label") # El nombre es histórico, pero muestra mes/año
 
         self.next_button = Gtk.Button( # Nombre genérico del botón
-            name="next-button",
+            name="next-month-button",
             child=Label(name="month-button-label", markup=icons.chevron_right) # CSS puede ser genérico
         )
         self.next_button.connect("clicked", self.on_next_clicked)
