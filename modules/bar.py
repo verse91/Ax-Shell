@@ -182,6 +182,8 @@ class Bar(Window):
             style_classes=["vertical"] if data.VERTICAL else [],
         )
 
+        self.date_time.get_children()[0].set_halign(Gtk.Align.CENTER)
+
         self.button_apps = Button(
             name="button-bar",
             tooltip_markup = tooltip_apps,
