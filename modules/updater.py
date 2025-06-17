@@ -94,7 +94,7 @@ def get_local_version():
 
 def get_remote_version():
     """
-    Reads the downloaded remote file and returns (version, changelog, download_url, pkg_update).
+    Reads the downloaded remote file and returns (version, changelog, pkg_update).
     """
     if os.path.exists(REMOTE_VERSION_FILE):
         try:
@@ -103,7 +103,6 @@ def get_remote_version():
                 return (
                     data_content.get("version", "0.0.0"),
                     data_content.get("changelog", []),
-                    data_content.get("download_url", "#"),
                     data_content.get("pkg_update", True),  # Default to True if missing
                 )
         except json.JSONDecodeError:
