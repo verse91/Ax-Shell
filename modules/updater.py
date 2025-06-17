@@ -28,21 +28,32 @@ REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/main
 REPO_DIR = get_relative_path("../")
 
 SNOOZE_FILE_NAME = "updater_snooze.txt"
+UPDATER_DISABLE_FILE_NAME = "updater_disabled.flag"
 SNOOZE_DURATION_SECONDS = 8 * 60 * 60  # 8 hours
 
 # --- Global state for standalone execution control ---
 _QUIT_GTK_IF_NO_WINDOW_STANDALONE = False
 
-def get_snooze_file_path():
-    """
-    Returns the path to the 'snooze' file inside ~/.cache/APP_NAME.
-    """
+def get_cache_dir():
+    """Returns the cache directory path, creating it if necessary."""
     cache_dir_base = data.CACHE_DIR or os.path.expanduser(f"~/.cache/{data.APP_NAME}")
     try:
         os.makedirs(cache_dir_base, exist_ok=True)
     except Exception as e:
         print(f"Error creating cache directory {cache_dir_base}: {e}")
-    return os.path.join(cache_dir_base, SNOOZE_FILE_NAME)
+    return cache_dir_base
+
+def get_snooze_file_path():
+    """
+    Returns the path to the 'snooze' file inside ~/.cache/APP_NAME.
+    """
+    return os.path.join(get_cache_dir(), SNOOZE_FILE_NAME)
+
+def get_disable_file_path():
+    """
+    Returns the path to the 'updater_disabled.flag' file inside ~/.cache/APP_NAME.
+    """
+    return os.path.join(get_cache_dir(), UPDATER_DISABLE_FILE_NAME)
 
 
 def fetch_remote_version():
@@ -193,25 +204,66 @@ class UpdateWindow(Gtk.Window):
 
         # Button container
         action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        action_box.set_halign(Gtk.Align.END)
         self.main_vbox.pack_start(action_box, False, False, 10)
+
+        # "Disable/Enable Updater" Button (aligned left)
+        self.toggle_updater_button = Gtk.Button()
+        self.toggle_updater_button.connect("clicked", self.on_toggle_updater_clicked)
+        self._update_toggle_updater_button_label() # Set initial label
+        action_box.pack_start(self.toggle_updater_button, False, False, 0)
+
+        # Box for right-aligned buttons
+        right_aligned_buttons_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        right_aligned_buttons_box.set_halign(Gtk.Align.END)
+        action_box.pack_end(right_aligned_buttons_box, True, True, 0) # This box expands
 
         # Update button (will now show embedded VTE terminal)
         self.update_button = Gtk.Button(name="update-button", label="Update")
         self.update_button.get_style_context().add_class("suggested-action")
         self.update_button.connect("clicked", self.on_update_clicked)
-        action_box.pack_end(self.update_button, False, False, 0)
+        right_aligned_buttons_box.pack_end(self.update_button, False, False, 0)
 
         # 'Later' button
         self.close_button = Gtk.Button(name="later-button", label="Later")
         self.close_button.connect("clicked", self.on_later_clicked)
-        action_box.pack_end(self.close_button, False, False, 0)
+        right_aligned_buttons_box.pack_end(self.close_button, False, False, 0)
 
         self.connect("destroy", self.on_window_destroyed)
 
         # Placeholder for embedded terminal
         self.terminal_container = None
         self.vte_terminal = None
+
+    def _update_toggle_updater_button_label(self):
+        disable_file = get_disable_file_path()
+        if os.path.exists(disable_file):
+            self.toggle_updater_button.set_label("Enable Updater")
+        else:
+            self.toggle_updater_button.set_label("Disable Updater")
+
+    def on_toggle_updater_clicked(self, _widget):
+        disable_file = get_disable_file_path()
+        try:
+            if os.path.exists(disable_file):
+                os.remove(disable_file)
+                print("Updater enabled.")
+            else:
+                with open(disable_file, "w") as f:
+                    pass # File content doesn't matter, its existence is the flag
+                print("Updater disabled.")
+            self._update_toggle_updater_button_label()
+        except Exception as e:
+            print(f"Error toggling updater state: {e}")
+            error_dialog = Gtk.MessageDialog(
+                transient_for=self,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text="Error Changing Updater Setting",
+            )
+            error_dialog.format_secondary_text(f"Could not change the updater setting: {e}")
+            error_dialog.run()
+            error_dialog.destroy()
 
     def on_later_clicked(self, _widget):
         """
@@ -234,6 +286,7 @@ class UpdateWindow(Gtk.Window):
         # Disable the buttons so they can't be clicked again
         self.update_button.set_sensitive(False)
         self.close_button.set_sensitive(False)
+        self.toggle_updater_button.set_sensitive(False) # Disable toggle button during update
 
         # Hide the progress bar (we don't need it now)
         self.progress_bar.set_visible(False)
@@ -347,6 +400,7 @@ class UpdateWindow(Gtk.Window):
         # Buttons are re-enabled to retry or close
         self.update_button.set_sensitive(True)
         self.close_button.set_sensitive(True)
+        self.toggle_updater_button.set_sensitive(True) # Re-enable toggle button
 
         # Error dialog
         error_dialog = Gtk.MessageDialog(
@@ -378,6 +432,14 @@ def _initiate_update_check_flow(is_standalone_mode, force=False): # Added force 
     If there's a new version or force is True, launches the update window.
     """
     global _QUIT_GTK_IF_NO_WINDOW_STANDALONE
+
+    # --- Check if updater is permanently disabled ---
+    disable_file_path = get_disable_file_path()
+    if os.path.exists(disable_file_path) and not force:
+        print(f"Updater is disabled via {UPDATER_DISABLE_FILE_NAME}. Skipping update check.")
+        if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
+            GLib.idle_add(Gtk.main_quit)
+        return
 
     if not is_connected():
         print("No internet connection. Skipping update check.")
