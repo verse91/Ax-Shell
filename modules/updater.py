@@ -94,7 +94,7 @@ def get_local_version():
 
 def get_remote_version():
     """
-    Reads the downloaded remote file and returns (version, changelog, download_url).
+    Reads the downloaded remote file and returns (version, changelog, download_url, pkg_update).
     """
     if os.path.exists(REMOTE_VERSION_FILE):
         try:
@@ -104,14 +104,15 @@ def get_remote_version():
                     data_content.get("version", "0.0.0"),
                     data_content.get("changelog", []),
                     data_content.get("download_url", "#"),
+                    data_content.get("pkg_update", True),  # Default to True if missing
                 )
         except json.JSONDecodeError:
             print(f"Error: Invalid JSON in remote file: {REMOTE_VERSION_FILE}")
-            return "0.0.0", [], "#"
+            return "0.0.0", [], "#", True
         except Exception as e:
             print(f"Error reading remote version file {REMOTE_VERSION_FILE}: {e}")
-            return "0.0.0", [], "#"
-    return "0.0.0", [], "#"
+            return "0.0.0", [], "#", True
+    return "0.0.0", [], "#", True
 
 
 def update_local_version_file():
@@ -138,7 +139,7 @@ def is_connected():
 
 
 class UpdateWindow(Gtk.Window):
-    def __init__(self, latest_version, changelog, is_standalone_mode=False):
+    def __init__(self, latest_version, changelog, pkg_update, is_standalone_mode=False):
         super().__init__(name="update-window", title=f"{data.APP_NAME_CAP} Updater")
         self.set_default_size(500, 480)
         self.set_border_width(16)
@@ -149,6 +150,7 @@ class UpdateWindow(Gtk.Window):
 
         self.is_standalone_mode = is_standalone_mode
         self.quit_gtk_main_on_destroy = False
+        self.pkg_update = pkg_update # Store pkg_update
 
         # Main vertical container
         self.main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
@@ -281,7 +283,7 @@ class UpdateWindow(Gtk.Window):
     def on_update_clicked(self, _widget):
         """
         When 'Update' is pressed, disable buttons, hide the progress bar,
-        and create a VTE terminal to run the curl | bash script.
+        and create a VTE terminal to run the update command.
         """
         # Disable the buttons so they can't be clicked again
         self.update_button.set_sensitive(False)
@@ -312,22 +314,27 @@ class UpdateWindow(Gtk.Window):
         self.show_all()
 
         # Command to run in the terminal
-        curl_command = "curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | bash"
+        if self.pkg_update:
+            update_command = "curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | bash"
+        else:
+            # Ensure REPO_DIR is correctly defined at the top of the file.
+            update_command = f"git -C \"{REPO_DIR}\" pull"
+
 
         # Spawn the process asynchronously inside the terminal
         self.vte_terminal.spawn_async(
             Vte.PtyFlags.DEFAULT,
-            os.environ.get("HOME", "/"),
-            ["/bin/bash", "-lc", curl_command],
-            [],
-            GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-            None,
-            None,
-            -1,
-            None,
-            None,
-            self.on_curl_script_exit,
-            None
+            os.environ.get("HOME", "/"), # CWD for the command
+            ["/bin/bash", "-lc", update_command], # Command and args
+            [], # envv
+            GLib.SpawnFlags.DO_NOT_REAP_CHILD, # spawn_flags
+            None, # child_setup
+            None, # child_setup_data
+            -1, # timeout
+            None, # cancellable
+            None, # callback_data for Vte.Terminal.spawn_async_wait_finish
+            self.on_curl_script_exit, # callback for when process finishes
+            None # user_data for callback
         )
 
     def on_curl_script_exit(self, terminal, exit_status, user_data):
@@ -348,8 +355,17 @@ class UpdateWindow(Gtk.Window):
 
     def handle_update_success(self):
         """
-        Shows a success message in the progress bar and restarts the application after 2 seconds.
+        Shows a success message, updates local version.json, and restarts the application.
         """
+        # Update the local version.json with the fetched remote one
+        try:
+            update_local_version_file()
+            print("Local version.json updated successfully.")
+        except Exception as e:
+            print(f"Failed to update local version.json: {e}")
+            # Optionally, you could show an error message to the user here
+            # For now, we'll proceed with the restart if the script itself was successful.
+
         # If there was any progress bar timeout, remove it
         if hasattr(self, "pulse_timeout_id"):
             GLib.source_remove(self.pulse_timeout_id)
@@ -377,9 +393,16 @@ class UpdateWindow(Gtk.Window):
         Closes the window and relaunches the application.
         """
         self.destroy()
-        # Relaunch logic would typically be here if not handled by an external script
-        # For now, it just closes. A real restart might involve:
-        # os.execv(sys.executable, [sys.executable] + sys.argv)
+        try:
+            print("Restarting application...")
+            # Relaunch the application
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception as e:
+            print(f"Error during application restart: {e}")
+            # Fallback or error message if execv fails
+            # For instance, you might want to just quit GTK if restart fails in standalone mode.
+            if self.is_standalone_mode and self.quit_gtk_main_on_destroy:
+                Gtk.main_quit()
         return False  # So the timeout runs only once
 
     def handle_update_failure(self, error_message):
@@ -448,13 +471,13 @@ def _initiate_update_check_flow(is_standalone_mode, force=False): # Added force 
         return
 
     fetch_remote_version()
-    latest_version, changelog, _ = get_remote_version()
+    latest_version, changelog, _, pkg_update = get_remote_version() # Unpack pkg_update
 
     if force:
         print(f"Force update mode enabled. Opening updater for version {latest_version}.")
-        if latest_version == "0.0.0" and not changelog:
+        if latest_version == "0.0.0" and not changelog: # And pkg_update will be True (default)
             print(f"Warning: Could not fetch remote version details for {data.APP_NAME_CAP}. Updater will show default/empty info.")
-        GLib.idle_add(launch_update_window, latest_version, changelog, is_standalone_mode)
+        GLib.idle_add(launch_update_window, latest_version, changelog, pkg_update, is_standalone_mode) # Pass pkg_update
         return # Exit after launching in force mode
 
     # --- Regular update check flow (if not forced) ---
@@ -494,18 +517,18 @@ def _initiate_update_check_flow(is_standalone_mode, force=False): # Added force 
 
     # Basic version comparison (not strict semver)
     if latest_version > current_version and latest_version != "0.0.0":
-        GLib.idle_add(launch_update_window, latest_version, changelog, is_standalone_mode)
+        GLib.idle_add(launch_update_window, latest_version, changelog, pkg_update, is_standalone_mode) # Pass pkg_update
     else:
         print(f"{data.APP_NAME_CAP} is up to date or the remote version is invalid.")
         if is_standalone_mode and _QUIT_GTK_IF_NO_WINDOW_STANDALONE:
             GLib.idle_add(Gtk.main_quit)
 
 
-def launch_update_window(latest_version, changelog, is_standalone_mode):
+def launch_update_window(latest_version, changelog, pkg_update, is_standalone_mode):
     """
     Creates and shows the update window.
     """
-    win = UpdateWindow(latest_version, changelog, is_standalone_mode)
+    win = UpdateWindow(latest_version, changelog, pkg_update, is_standalone_mode) # Pass pkg_update
     if is_standalone_mode:
         win.quit_gtk_main_on_destroy = True
     win.show_all()
