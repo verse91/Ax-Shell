@@ -24,7 +24,7 @@ import config.data as data
 # File locations
 VERSION_FILE = get_relative_path("../version.json")
 REMOTE_VERSION_FILE = "/tmp/remote_version.json"
-REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/main/version.json"
+REMOTE_URL = "https://raw.githubusercontent.com/Axenide/Ax-Shell/refs/heads/dev/version.json"
 REPO_DIR = get_relative_path("../")
 
 SNOOZE_FILE_NAME = "updater_snooze.txt"
@@ -318,7 +318,7 @@ class UpdateWindow(Gtk.Window):
             update_command = "curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | bash"
         else:
             # Ensure REPO_DIR is correctly defined at the top of the file.
-            update_command = f"git -C \"{REPO_DIR}\" pull"
+            update_command = f"git -C \"{REPO_DIR}\" pull && echo 'Reloading in 3...' && sleep 1 && echo '2...' && sleep 1 && echo '1...' && sleep 1 && killall {data.APP_NAME} && setsid python \"{REPO_DIR}main.py\""
 
 
         # Spawn the process asynchronously inside the terminal

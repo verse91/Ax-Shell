@@ -1,6 +1,6 @@
 {
 	"version": "0.0.18",
-  "pkg_update": false,
+  "pkg_update": true,
 	"changelog": [
     "<b>tweak:</b> Only update packages when necessary."
 	]
