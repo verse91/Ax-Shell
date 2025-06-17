@@ -207,7 +207,7 @@ class UpdateWindow(Gtk.Window):
         self.main_vbox.pack_start(action_box, False, False, 10)
 
         # "Disable/Enable Updater" Button (aligned left)
-        self.toggle_updater_button = Gtk.Button()
+        self.toggle_updater_button = Gtk.Button(name="toggle-updater-button")
         self.toggle_updater_button.connect("clicked", self.on_toggle_updater_clicked)
         self._update_toggle_updater_button_label() # Set initial label
         action_box.pack_start(self.toggle_updater_button, False, False, 0)

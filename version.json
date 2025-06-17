@@ -1,6 +1,6 @@
 {
-	"version": "0.0.16",
+	"version": "0.0.17",
 	"changelog": [
-    "<b>feat:</b> Added 12 hours format for time display. Check Appearance settings."
+    "<b>feat:</b> Updater toggle."
 	]
 }
