@@ -1,7 +1,7 @@
 {
-	"version": "0.0.20",
+	"version": "0.0.21",
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> Dock not visible with bar position at top."
+    "<b>feat:</b> Toggle special workspaces. (<a href='https://github.com/Axenide/Ax-Shell/pull/197'>#197</a>)"
 	]
 }
