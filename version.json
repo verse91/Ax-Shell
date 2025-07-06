@@ -1,7 +1,7 @@
 {
-	"version": "0.0.21",
+	"version": "0.0.22",
   "pkg_update": false,
 	"changelog": [
-    "<b>feat:</b> Toggle special workspaces. (<a href='https://github.com/Axenide/Ax-Shell/pull/197'>#197</a>)"
+    "<b>feat:</b> Customizable ignored notifications in history."
 	]
 }
