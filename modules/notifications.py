@@ -24,6 +24,9 @@ from widgets.wayland import WaylandWindow as Window
 PERSISTENT_DIR = f"/tmp/{data.APP_NAME}/notifications"
 PERSISTENT_HISTORY_FILE = os.path.join(PERSISTENT_DIR, "notification_history.json")
 
+LIMITED_APPS_HISTORY = ["Spotify"]
+HISTORY_IGNORED_APPS = ["Hyprshot"]
+
 def cache_notification_pixbuf(notification_box):
     """
     Saves a scaled pixbuf (48x48) in the cache directory and returns the cache file path.
@@ -437,8 +440,6 @@ class NotificationHistory(Box):
         self._cleanup_orphan_cached_images()
         self.schedule_midnight_update()
 
-        self.LIMITED_APPS_HISTORY = ["Spotify"]
-        self.HISTORY_IGNORED_APPS = ["Hyprshot"]
 
     def get_ordinal(self, n):
         if 11 <= (n % 100) <= 13:
@@ -723,12 +724,12 @@ class NotificationHistory(Box):
 
     def add_notification(self, notification_box):
         app_name = notification_box.notification.app_name
-        if app_name in self.HISTORY_IGNORED_APPS:
+        if app_name in HISTORY_IGNORED_APPS:
             logger.info(f"Ignoring notification from {app_name} as it is in the ignored list.")
             notification_box.destroy(from_history_delete=True)
             return
 
-        if app_name in self.LIMITED_APPS_HISTORY:
+        if app_name in LIMITED_APPS_HISTORY:
             self.clear_history_for_app(app_name)
 
         if len(self.containers) >= 50:
@@ -931,8 +932,6 @@ class NotificationHistory(Box):
         self.update_no_notifications_label_visibility()
 
 class NotificationContainer(Box):
-    LIMITED_APPS = ["Spotify"]
-
     def __init__(self, notification_history_instance: NotificationHistory, revealer_transition_type: str = "slide-down"):
         super().__init__(name="notification-container-main", orientation="v", spacing=4)
         self.notification_history = notification_history_instance
@@ -1028,7 +1027,7 @@ class NotificationContainer(Box):
         notification.connect("closed", self.on_notification_closed)
 
         app_name = notification.app_name
-        if app_name in self.LIMITED_APPS:
+        if app_name in LIMITED_APPS_HISTORY:
             notification_history_instance.clear_history_for_app(app_name)
 
             existing_notification_index = -1
