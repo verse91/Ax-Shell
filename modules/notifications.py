@@ -438,6 +438,7 @@ class NotificationHistory(Box):
         self.schedule_midnight_update()
 
         self.LIMITED_APPS_HISTORY = ["Spotify"]
+        self.HISTORY_IGNORED_APPS = ["Hyprshot"]
 
     def get_ordinal(self, n):
         if 11 <= (n % 100) <= 13:
@@ -722,6 +723,11 @@ class NotificationHistory(Box):
 
     def add_notification(self, notification_box):
         app_name = notification_box.notification.app_name
+        if app_name in self.HISTORY_IGNORED_APPS:
+            logger.info(f"Ignoring notification from {app_name} as it is in the ignored list.")
+            notification_box.destroy(from_history_delete=True)
+            return
+
         if app_name in self.LIMITED_APPS_HISTORY:
             self.clear_history_for_app(app_name)
 
