@@ -1,7 +1,7 @@
 {
-	"version": "0.0.19",
+	"version": "0.0.20",
   "pkg_update": false,
 	"changelog": [
-    "<b>tweak:</b> Moved corners module to a bottom layer to avoid passthrough issues."
+    "<b>fix:</b> Dock not visible with bar position at top."
 	]
 }
