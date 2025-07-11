@@ -9,112 +9,78 @@ from gi.repository import GLib
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+import config.data as data
 
-class MixerSlider(Box):
+vertical_mode = (
+    True
+    if data.PANEL_THEME == "Panel"
+    and (
+        data.BAR_POSITION in ["Left", "Right"]
+        or data.PANEL_POSITION in ["Start", "End"]
+    )
+    else False
+)
+
+
+class MixerSlider(Scale):
     def __init__(self, stream, **kwargs):
         super().__init__(
-            orientation="v",
-            spacing=4,
+            name="control-slider",
+            orientation="h",
             h_expand=True,
-            v_align="center",
+            h_align="fill",
+            has_origin=True,
+            increments=(0.01, 0.1),
+            style_classes=["no-icon"],
+            **kwargs,
         )
 
         self.stream = stream
-
-        self.label = Label(
-            label=stream.name or stream.description,
-            h_expand=True,
-            h_align="start",
-            v_align="center",
-            max_width_chars=15,
-            ellipsize="end",
-            wrap=False,
-            single_line_mode=True,
-        )
-
-        self.scale = Scale(
-            name="control-slider",
-            orientation="h",
-            min_value=0,
-            max_value=1,
-            value=stream.volume / 100,
-            h_expand=True,
-            v_align="center",
-            has_origin=True,
-            increments=(0.01, 0.1),
-            draw_value=False,
-            style_classes=["no-icon"],
-        )
-
-        # Add debouncing variables
-        self._pending_value = None
-        self._update_source_id = None
         self._updating_from_stream = False
+        self.set_value(stream.volume / 100)
 
-        self.scale.connect("value-changed", self.on_volume_changed)
+        self.connect("value-changed", self.on_value_changed)
         stream.connect("changed", self.on_stream_changed)
-
-        # Set tooltip to show volume percentage
-        self.scale.set_tooltip_text(f"{stream.volume:.0f}%")
 
         # Apply appropriate style class based on stream type
         if hasattr(stream, "type"):
             if "microphone" in stream.type.lower() or "input" in stream.type.lower():
-                self.scale.add_style_class("mic")
+                self.add_style_class("mic")
             else:
-                self.scale.add_style_class("vol")
+                self.add_style_class("vol")
         else:
             # Default to volume style
-            self.scale.add_style_class("vol")
+            self.add_style_class("vol")
 
-        self.add(self.label)
-        self.add(self.scale)
-
-        # Set initial muted state
+        # Set initial tooltip and muted state
+        self.set_tooltip_text(f"{stream.volume:.0f}%")
         self.update_muted_state()
 
-    def on_volume_changed(self, scale):
+    def on_value_changed(self, _):
         if self._updating_from_stream:
             return
-        self._pending_value = scale.get_value()
-        if self._update_source_id is None:
-            self._update_source_id = GLib.timeout_add(50, self._update_volume_callback)
-
-    def _update_volume_callback(self):
-        if self._pending_value is not None:
-            value_to_set = self._pending_value
-            self._pending_value = None
-            volume_percent = value_to_set * 100
-            if volume_percent != self.stream.volume:
-                self.stream.volume = volume_percent
-                self.scale.set_tooltip_text(f"{volume_percent:.0f}%")
-            return True
-        else:
-            self._update_source_id = None
-            return False
+        if self.stream:
+            self.stream.volume = self.value * 100
+            self.set_tooltip_text(f"{self.value * 100:.0f}%")
 
     def on_stream_changed(self, stream):
         self._updating_from_stream = True
-        self.scale.set_value(stream.volume / 100)
-        self.scale.set_tooltip_text(f"{stream.volume:.0f}%")
+        self.value = stream.volume / 100
+        self.set_tooltip_text(f"{stream.volume:.0f}%")
         self.update_muted_state()
         self._updating_from_stream = False
 
     def update_muted_state(self):
         if self.stream.muted:
-            self.scale.add_style_class("muted")
+            self.add_style_class("muted")
         else:
-            self.scale.remove_style_class("muted")
-
-    def destroy(self):
-        if self._update_source_id is not None:
-            GLib.source_remove(self._update_source_id)
-        super().destroy()
+            self.remove_style_class("muted")
 
 
 class MixerSection(Box):
     def __init__(self, title, **kwargs):
         super().__init__(
+            name="mixer-section",
             orientation="v",
             spacing=8,
             h_expand=True,
@@ -122,15 +88,16 @@ class MixerSection(Box):
         )
 
         self.title_label = Label(
+            name="mixer-section-title",
             label=title,
-            h_align="center",
-            v_align="start",
-            style_classes=["mixer-section-title"],
+            h_expand=True,
+            h_align="fill",
         )
 
         self.content_box = Box(
+            name="mixer-content",
             orientation="v",
-            spacing=4,
+            spacing=8,
             h_expand=True,
             v_expand=True,
         )
@@ -143,8 +110,31 @@ class MixerSection(Box):
             self.content_box.remove(child)
 
         for stream in streams:
+            # Create container with label and slider
+            stream_container = Box(
+                orientation="v",
+                spacing=4,
+                h_expand=True,
+                v_align="center",
+            )
+
+            label = Label(
+                name="mixer-stream-label",
+                label=stream.description,
+                h_expand=True,
+                h_align="start",
+                v_align="center",
+                max_width_chars=15,
+                ellipsize="end",
+                wrap=False,
+                single_line_mode=True,
+            )
+
             slider = MixerSlider(stream)
-            self.content_box.add(slider)
+
+            stream_container.add(label)
+            stream_container.add(slider)
+            self.content_box.add(stream_container)
 
         self.content_box.show_all()
 
@@ -173,7 +163,7 @@ class Mixer(Box):
             return
 
         self.main_container = Box(
-            orientation="h",
+            orientation="h" if not vertical_mode else "v",
             spacing=8,
             h_expand=True,
             v_expand=True,

@@ -1,7 +1,7 @@
 {
-	"version": "0.0.22",
+	"version": "0.0.23",
   "pkg_update": false,
 	"changelog": [
-    "<b>feat:</b> Customizable ignored notifications in history."
+    "<b>feat:</b> Audio Mixer."
 	]
 }

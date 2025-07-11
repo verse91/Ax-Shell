@@ -109,3 +109,25 @@
 #mic-label-dash.muted {
   color: var(--surface);
 }
+
+#mixer-section {
+  border-radius: 20px;
+  border: 4px solid var(--surface);
+  padding: 4px;
+}
+
+#mixer-section-title {
+  font-weight: bold;
+  padding: 8px;
+  border: 2px solid var(--surface);
+  border-radius: 12px;
+}
+
+#mixer-content {
+  padding: 0 8px;
+}
+
+#mixer-stream-label {
+  color: var(--outline);
+  font-weight: bold;
+}
