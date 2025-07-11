@@ -21,8 +21,14 @@ from fabric.widgets.window import Window
 from gi.repository import GdkPixbuf, GLib, Gtk
 from PIL import Image
 
-from .data import (APP_NAME, APP_NAME_CAP, NOTIF_POS_DEFAULT, NOTIF_POS_KEY,
-                   PANEL_POSITION_DEFAULT, PANEL_POSITION_KEY)
+from .data import (
+    APP_NAME,
+    APP_NAME_CAP,
+    NOTIF_POS_DEFAULT,
+    NOTIF_POS_KEY,
+    PANEL_POSITION_DEFAULT,
+    PANEL_POSITION_KEY,
+)
 from .settings_utils import backup_and_replace, bind_vars, start_config
 
 
@@ -137,6 +143,7 @@ class HyprConfGUI(Window):
             ("Overview", "prefix_overview", "suffix_overview"),
             ("Wallpapers", "prefix_wallpapers", "suffix_wallpapers"),
             ("Random Wallpaper", "prefix_randwall", "suffix_randwall"),
+            ("Audio Mixer", "prefix_mixer", "suffix_mixer"),
             ("Emoji Picker", "prefix_emoji", "suffix_emoji"),
             ("Power Menu", "prefix_power", "suffix_power"),
             ("Toggle Caffeine", "prefix_caffeine", "suffix_caffeine"),
