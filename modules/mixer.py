@@ -4,6 +4,7 @@ from fabric.widgets.box import Box
 from fabric.widgets.label import Label
 from fabric.widgets.scale import Scale
 from fabric.widgets.scrolledwindow import ScrolledWindow
+from gi.repository import GLib
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -35,19 +36,26 @@ class MixerSlider(Box):
             name="control-slider",
             orientation="h",
             min_value=0,
-            max_value=100,
-            value=stream.volume,
+            max_value=1,
+            value=stream.volume / 100,
             h_expand=True,
             v_align="center",
             has_origin=True,
-            increments=(1, 5),
-            draw_value=True,
-            value_pos="right",
+            increments=(0.01, 0.1),
+            draw_value=False,
             style_classes=["no-icon"],
         )
 
+        # Add debouncing variables
+        self._pending_value = None
+        self._update_source_id = None
+        self._updating_from_stream = False
+
         self.scale.connect("value-changed", self.on_volume_changed)
         stream.connect("changed", self.on_stream_changed)
+
+        # Set tooltip to show volume percentage
+        self.scale.set_tooltip_text(f"{stream.volume:.0f}%")
 
         # Apply appropriate style class based on stream type
         if hasattr(stream, "type"):
@@ -66,17 +74,42 @@ class MixerSlider(Box):
         self.update_muted_state()
 
     def on_volume_changed(self, scale):
-        self.stream.volume = scale.get_value()
+        if self._updating_from_stream:
+            return
+        self._pending_value = scale.get_value()
+        if self._update_source_id is None:
+            self._update_source_id = GLib.timeout_add(50, self._update_volume_callback)
+
+    def _update_volume_callback(self):
+        if self._pending_value is not None:
+            value_to_set = self._pending_value
+            self._pending_value = None
+            volume_percent = value_to_set * 100
+            if volume_percent != self.stream.volume:
+                self.stream.volume = volume_percent
+                self.scale.set_tooltip_text(f"{volume_percent:.0f}%")
+            return True
+        else:
+            self._update_source_id = None
+            return False
 
     def on_stream_changed(self, stream):
-        self.scale.set_value(stream.volume)
+        self._updating_from_stream = True
+        self.scale.set_value(stream.volume / 100)
+        self.scale.set_tooltip_text(f"{stream.volume:.0f}%")
         self.update_muted_state()
+        self._updating_from_stream = False
 
     def update_muted_state(self):
         if self.stream.muted:
             self.scale.add_style_class("muted")
         else:
             self.scale.remove_style_class("muted")
+
+    def destroy(self):
+        if self._update_source_id is not None:
+            GLib.source_remove(self._update_source_id)
+        super().destroy()
 
 
 class MixerSection(Box):
