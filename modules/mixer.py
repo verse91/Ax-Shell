@@ -43,6 +43,7 @@ class MixerSlider(Box):
             increments=(1, 5),
             draw_value=True,
             value_pos="right",
+            style_classes=["no-icon"],
         )
 
         self.scale.connect("value-changed", self.on_volume_changed)
