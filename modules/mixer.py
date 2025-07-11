@@ -1,3 +1,5 @@
+import math
+
 import gi
 from fabric.audio.service import Audio
 from fabric.widgets.box import Box
@@ -120,14 +122,12 @@ class MixerSection(Box):
 
             label = Label(
                 name="mixer-stream-label",
-                label=stream.description,
+                label=f"[{math.ceil(stream.volume)}%] {stream.description}",
                 h_expand=True,
                 h_align="start",
                 v_align="center",
-                max_width_chars=15,
-                ellipsize="end",
-                wrap=False,
-                single_line_mode=True,
+                ellipsization="end",
+                max_chars_width=45,
             )
 
             slider = MixerSlider(stream)
