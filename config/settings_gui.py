@@ -574,6 +574,7 @@ class HyprConfGUI(Window):
             "control": "Control Panel",
             "network": "Network Applet",
             "button_tools": "Toolbox Button",
+            "sysprofiles": "Powerprofiles Switcher",
             "button_overview": "Overview Button",
             "ws_container": "Workspaces",
             "weather": "Weather Widget",
