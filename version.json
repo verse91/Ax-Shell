@@ -1,7 +1,7 @@
 {
-	"version": "0.0.24",
-  "pkg_update": false,
+	"version": "0.0.25",
+  "pkg_update": true,
 	"changelog": [
-    "<b>fix:</b> Audio Mixer max characters."
-	]
+    "<b>feat:</b> Power profiles. (<a href='https://github.com/Axenide/Ax-Shell/pull/217'>#217</a>)"
+  ]
 }
