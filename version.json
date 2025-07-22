@@ -1,7 +1,8 @@
 {
-	"version": "0.0.25",
+	"version": "0.0.26", 
   "pkg_update": true,
 	"changelog": [
-    "<b>feat:</b> Power profiles. (<a href='https://github.com/Axenide/Ax-Shell/pull/217'>#217</a>)"
+    "<b>feat:</b> Power profiles. (<a href='https://github.com/Axenide/Ax-Shell/pull/217'>#217</a>)",
+    "<b>fix:</b> GPU fix. (<a href='https://github.com/Axenide/Ax-Shell/pull/218'>#218</a>)"
   ]
 }
