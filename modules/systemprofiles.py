@@ -1,10 +1,11 @@
 import subprocess
+
+from fabric.utils.helpers import exec_shell_command_async
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.label import Label
-from fabric.utils.helpers import exec_shell_command_async
-import config.data as data
 
+import config.data as data
 import modules.icons as icons
 
 
@@ -16,16 +17,21 @@ class Systemprofiles(Box):
             spacing=3,
         )
 
+        if data.BAR_THEME == "Dense" or data.BAR_THEME == "Edge":
+            self.add_style_class("invert")
+
         # Create three buttons for power modes.
         self.bat_save = Button(
             name="battery-save",
             child=Label(name="battery-save-label", markup=icons.power_saving),
             on_clicked=lambda *_: self.set_power_mode("power-saver"),
+            tooltip_text="Power saving mode",
         )
         self.bat_balanced = Button(
             name="battery-balanced",
             child=Label(name="battery-balanced-label", markup=icons.power_balanced),
             on_clicked=lambda *_: self.set_power_mode("balanced"),
+            tooltip_text="Balanced mode",
         )
         self.bat_perf = Button(
             name="battery-performance",
@@ -33,6 +39,7 @@ class Systemprofiles(Box):
                 name="battery-performance-label", markup=icons.power_performance
             ),
             on_clicked=lambda *_: self.set_power_mode("performance"),
+            tooltip_text="Performance mode",
         )
 
         # Attach mouse enter/leave events to buttons as well
