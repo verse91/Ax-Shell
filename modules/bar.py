@@ -2,12 +2,8 @@ import json
 import os
 
 from fabric.hyprland.service import HyprlandEvent
-from fabric.hyprland.widgets import (
-    Language,
-    WorkspaceButton,
-    Workspaces,
-    get_hyprland_connection,
-)
+from fabric.hyprland.widgets import (Language, WorkspaceButton, Workspaces,
+                                     get_hyprland_connection)
 from fabric.utils.helpers import exec_shell_command_async
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
@@ -247,7 +243,6 @@ class Bar(Window):
         self.rev_right = [
             self.metrics,
             self.control,
-            self.sysprofiles,
         ]
 
         self.revealer_right = Revealer(
@@ -271,6 +266,7 @@ class Bar(Window):
 
         self.rev_left = [
             self.weather,
+            self.sysprofiles,
             self.network,
         ]
 
@@ -314,6 +310,7 @@ class Bar(Window):
             self.button_apps,
             self.systray,
             self.control,
+            self.sysprofiles,
             self.network,
             self.button_tools,
         ]
@@ -327,7 +324,6 @@ class Bar(Window):
         self.v_end_children = [
             self.battery,
             self.metrics,
-            self.sysprofiles,
             self.language,
             self.date_time,
             self.button_power,

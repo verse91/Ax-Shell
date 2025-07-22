@@ -1,8 +1,7 @@
 {
-	"version": "0.0.26", 
+	"version": "0.0.27", 
   "pkg_update": true,
 	"changelog": [
-    "<b>feat:</b> Power profiles. (<a href='https://github.com/Axenide/Ax-Shell/pull/217'>#217</a>)",
-    "<b>fix:</b> GPU fix. (<a href='https://github.com/Axenide/Ax-Shell/pull/218'>#218</a>)"
+    "<b>tweak:</b> Moved power profile switcher to the start of the bar for better distribution."
   ]
 }
