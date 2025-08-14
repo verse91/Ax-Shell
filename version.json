@@ -1,6 +1,6 @@
 {
 	"version": "0.0.29", 
-  "pkg_update": true,
+  "pkg_update": false,
 	"changelog": [
     "<b>tweak:</b> Default blur in ax-shell.conf",
     "<b>fix:</b> Language size"
