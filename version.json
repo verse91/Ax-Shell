@@ -2,6 +2,7 @@
 	"version": "0.0.30", 
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> Dock not respecting visibility on certain layouts"
+    "<b>fix:</b> Dock not respecting visibility on certain layouts",
+    "<b>tweaks:</b> General threading and performance improvements"
   ]
 }
