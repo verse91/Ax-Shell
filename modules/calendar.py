@@ -16,19 +16,7 @@ class Calendar(Gtk.Box):
     def __init__(self, view_mode="month"):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8, name="calendar")
         self.view_mode = view_mode
-
-        try:
-            origin_date_str = subprocess.check_output(["locale", "week-1stday"], text=True).strip()
-            first_weekday_val = int(subprocess.check_output(["locale", "first_weekday"], text=True).strip())
-            
-            origin_date = datetime.fromisoformat(origin_date_str)
-            # Esta lógica calcula el día de la semana (0-6, Lunes=0) que es considerado el primero
-            # según la configuración regional combinada de week-1stday y first_weekday.
-            date_of_first_day_of_week_config = origin_date + timedelta(days=first_weekday_val - 1)
-            self.first_weekday = date_of_first_day_of_week_config.weekday() # Lunes=0, ..., Domingo=6
-        except Exception as e:
-            print(f"Error getting locale first weekday: {e}")
-            self.first_weekday = 0  # Por defecto Lunes
+        self.first_weekday = 0  # Default: Monday, will be updated async
 
         self.set_halign(Gtk.Align.CENTER)
         self.set_hexpand(False)
@@ -92,6 +80,36 @@ class Calendar(Gtk.Box):
         self.update_header() # Llamar antes de update_calendar para que el primer header sea correcto
         self.update_calendar()
         self.schedule_midnight_update()
+        
+        # Initialize locale settings asynchronously
+        GLib.Thread.new("calendar-locale", self._init_locale_settings_thread, None)
+
+    def _init_locale_settings_thread(self, user_data):
+        """Background thread to initialize locale settings without blocking UI."""
+        try:
+            origin_date_str = subprocess.check_output(["locale", "week-1stday"], text=True).strip()
+            first_weekday_val = int(subprocess.check_output(["locale", "first_weekday"], text=True).strip())
+            
+            origin_date = datetime.fromisoformat(origin_date_str)
+            # Esta lógica calcula el día de la semana (0-6, Lunes=0) que es considerado el primero
+            # según la configuración regional combinada de week-1stday y first_weekday.
+            date_of_first_day_of_week_config = origin_date + timedelta(days=first_weekday_val - 1)
+            new_first_weekday = date_of_first_day_of_week_config.weekday() # Lunes=0, ..., Domingo=6
+            
+            # Update the first_weekday on main thread and refresh calendar if needed
+            GLib.idle_add(self._update_first_weekday, new_first_weekday)
+        except Exception as e:
+            print(f"Error getting locale first weekday: {e}")
+            # Keep default value (0 = Monday)
+    
+    def _update_first_weekday(self, new_first_weekday):
+        """Update first weekday setting and refresh calendar if changed."""
+        if self.first_weekday != new_first_weekday:
+            self.first_weekday = new_first_weekday
+            # Clear cache and refresh calendar with new locale settings
+            self.month_views.clear()
+            self.update_calendar()
+        return False  # Don't repeat this idle callback
 
     def schedule_midnight_update(self):
         now = datetime.now()
