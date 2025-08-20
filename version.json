@@ -1,8 +1,8 @@
 {
-	"version": "0.0.30", 
+	"version": "0.0.32", 
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> Dock not respecting visibility on certain layouts",
-    "<b>tweaks:</b> General threading and performance improvements"
+    "<b>fix:</b> Calendar not updating after suspend",
+    "<b>Removed Herobrine</b>"
   ]
 }

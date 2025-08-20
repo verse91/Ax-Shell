@@ -9,7 +9,7 @@ from fabric.widgets.label import Label
 import modules.icons as icons
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk
+from gi.repository import GLib, Gtk, Gio
 
 
 class Calendar(Gtk.Box):
@@ -79,8 +79,9 @@ class Calendar(Gtk.Box):
 
         self.update_header() # Llamar antes de update_calendar para que el primer header sea correcto
         self.update_calendar()
-        self.schedule_midnight_update()
-        
+        self.setup_periodic_update()
+        self.setup_dbus_listeners()
+
         # Initialize locale settings asynchronously
         GLib.Thread.new("calendar-locale", self._init_locale_settings_thread, None)
 
@@ -111,12 +112,34 @@ class Calendar(Gtk.Box):
             self.update_calendar()
         return False  # Don't repeat this idle callback
 
-    def schedule_midnight_update(self):
+    def setup_periodic_update(self):
+        # Check for date changes every second
+        GLib.timeout_add(1000, self.check_date_change)
+
+    def setup_dbus_listeners(self):
+        # Listen for system suspend/resume events
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        bus.signal_subscribe(
+            None,  # sender
+            'org.freedesktop.login1.Manager',  # interface
+            'PrepareForSleep',  # signal
+            '/org/freedesktop/login1',  # path
+            None,  # arg0
+            Gio.DBusSignalFlags.NONE,
+            self.on_suspend_resume,  # callback
+            None  # user_data
+        )
+
+    def check_date_change(self):
         now = datetime.now()
-        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        delta = midnight - now
-        seconds_until = delta.total_seconds()
-        GLib.timeout_add_seconds(int(seconds_until), self.on_midnight)
+        current_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if current_date != self.current_day_date:
+            self.on_midnight()
+        return True  # Continue the timer
+
+    def on_suspend_resume(self, connection, sender_name, object_path, interface_name, signal_name, parameters, user_data):
+        # Check date when resuming from suspend
+        self.check_date_change()
 
     def on_midnight(self):
         now = datetime.now()
@@ -146,7 +169,6 @@ class Calendar(Gtk.Box):
             # pero update_calendar lo corregirá al establecer la nueva vista.
 
         self.update_calendar() # Esto regenerará la vista si fue eliminada y actualizará el resaltado
-        self.schedule_midnight_update()
         return False # Importante para que el timeout no se repita automáticamente
 
     def update_header(self):
