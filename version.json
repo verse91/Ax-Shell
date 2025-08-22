@@ -1,8 +1,7 @@
 {
-	"version": "0.0.32", 
+	"version": "0.0.33", 
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> Calendar not updating after suspend",
-    "<b>Removed Herobrine</b>"
+    "<b>feat:</b> Search by command in launcher"
   ]
 }
