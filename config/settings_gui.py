@@ -666,25 +666,42 @@ class HyprConfGUI(Window):
         system_grid.set_margin_bottom(15)
         vbox.add(system_grid)
 
+        # Disable auto-append checkbox - first option
+        disable_append_label = Label(
+            label="Disable auto-append to hyprland.conf", h_align="start", v_align="center"
+        )
+        system_grid.attach(disable_append_label, 0, 0, 1, 1)
+        disable_append_switch_container = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL,
+            halign=Gtk.Align.START,
+            valign=Gtk.Align.CENTER,
+        )
+        self.disable_append_switch = Gtk.Switch(
+            active=bind_vars.get("disable_auto_append_hyprland", False),
+            tooltip_text="Prevent Ax-Shell from automatically appending source string to hyprland.conf"
+        )
+        disable_append_switch_container.add(self.disable_append_switch)
+        system_grid.attach(disable_append_switch_container, 1, 0, 1, 1)
+
         terminal_header = Label(markup="<b>Terminal Settings</b>", h_align="start")
-        system_grid.attach(terminal_header, 0, 0, 2, 1)
+        system_grid.attach(terminal_header, 0, 1, 2, 1)
         terminal_label = Label(label="Command:", h_align="start", v_align="center")
-        system_grid.attach(terminal_label, 0, 1, 1, 1)
+        system_grid.attach(terminal_label, 0, 2, 1, 1)
         self.terminal_entry = Entry(
             text=bind_vars.get("terminal_command", "kitty -e"),
             tooltip_text="Command used to launch terminal apps (e.g., 'kitty -e')",
             h_expand=True,
         )
-        system_grid.attach(self.terminal_entry, 1, 1, 1, 1)
+        system_grid.attach(self.terminal_entry, 1, 2, 1, 1)
         hint_label = Label(
             markup="<small>Examples: 'kitty -e', 'alacritty -e', 'foot -e'</small>",
             h_align="start",
         )
-        system_grid.attach(hint_label, 0, 2, 2, 1)
+        system_grid.attach(hint_label, 0, 3, 2, 1)
 
         hypr_header = Label(markup="<b>Hyprland Integration</b>", h_align="start")
-        system_grid.attach(hypr_header, 2, 0, 2, 1)
-        row = 1
+        system_grid.attach(hypr_header, 2, 1, 2, 1)
+        row = 2
         self.lock_switch = None
         if self.show_lock_checkbox:
             lock_label = Label(
@@ -997,6 +1014,7 @@ class HyprConfGUI(Window):
         )
         current_bind_vars_snapshot["dock_icon_size"] = int(self.dock_size_scale.value)
         current_bind_vars_snapshot["terminal_command"] = self.terminal_entry.get_text()
+        current_bind_vars_snapshot["disable_auto_append_hyprland"] = self.disable_append_switch.get_active()
         current_bind_vars_snapshot["corners_visible"] = self.corners_switch.get_active()
         current_bind_vars_snapshot["bar_workspace_show_number"] = (
             self.ws_num_switch.get_active()
@@ -1142,18 +1160,25 @@ class HyprConfGUI(Window):
             try:
                 from .settings_constants import SOURCE_STRING
 
-                needs_append = True
-                if os.path.exists(hypr_path):
-                    with open(hypr_path, "r") as f:
-                        if SOURCE_STRING.strip() in f.read():
-                            needs_append = False
-                else:
-                    os.makedirs(os.path.dirname(hypr_path), exist_ok=True)
+                # Check if auto-append is disabled
+                disable_auto_append = current_bind_vars_snapshot.get("disable_auto_append_hyprland", False)
+                if not disable_auto_append:
+                    needs_append = True
+                    if os.path.exists(hypr_path):
+                        with open(hypr_path, "r") as f:
+                            if SOURCE_STRING.strip() in f.read():
+                                needs_append = False
+                    else:
+                        os.makedirs(os.path.dirname(hypr_path), exist_ok=True)
 
-                if needs_append:
-                    with open(hypr_path, "a") as f:
-                        f.write("\n" + SOURCE_STRING)
-                    print(f"Appended source string to {hypr_path}")
+                    if needs_append:
+                        with open(hypr_path, "a") as f:
+                            f.write("\n" + SOURCE_STRING)
+                        print(f"Appended source string to {hypr_path}")
+                    else:
+                        print("Source string already present in hyprland.conf")
+                else:
+                    print("Auto-append to hyprland.conf is disabled")
             except Exception as e:
                 print(f"Error updating {hypr_path}: {e}")
             print(
@@ -1268,6 +1293,9 @@ class HyprConfGUI(Window):
                 settings_utils.bind_vars.get("dock_icon_size", 28)
             )
             self.terminal_entry.set_text(settings_utils.bind_vars["terminal_command"])
+            self.disable_append_switch.set_active(
+                settings_utils.bind_vars.get("disable_auto_append_hyprland", False)
+            )
             self.ws_num_switch.set_active(
                 settings_utils.bind_vars.get("bar_workspace_show_number", False)
             )
