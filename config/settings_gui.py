@@ -666,22 +666,22 @@ class HyprConfGUI(Window):
         system_grid.set_margin_bottom(15)
         vbox.add(system_grid)
 
-        # Disable auto-append checkbox - first option
-        disable_append_label = Label(
-            label="Disable auto-append to hyprland.conf", h_align="start", v_align="center"
+        # Auto-append checkbox - first option
+        auto_append_label = Label(
+            label="Auto-append to hyprland.conf", h_align="start", v_align="center"
         )
-        system_grid.attach(disable_append_label, 0, 0, 1, 1)
-        disable_append_switch_container = Gtk.Box(
+        system_grid.attach(auto_append_label, 0, 0, 1, 1)
+        auto_append_switch_container = Gtk.Box(
             orientation=Gtk.Orientation.HORIZONTAL,
             halign=Gtk.Align.START,
             valign=Gtk.Align.CENTER,
         )
-        self.disable_append_switch = Gtk.Switch(
-            active=bind_vars.get("disable_auto_append_hyprland", False),
-            tooltip_text="Prevent Ax-Shell from automatically appending source string to hyprland.conf"
+        self.auto_append_switch = Gtk.Switch(
+            active=bind_vars.get("auto_append_hyprland", True),
+            tooltip_text="Automatically append Ax-Shell source string to hyprland.conf"
         )
-        disable_append_switch_container.add(self.disable_append_switch)
-        system_grid.attach(disable_append_switch_container, 1, 0, 1, 1)
+        auto_append_switch_container.add(self.auto_append_switch)
+        system_grid.attach(auto_append_switch_container, 1, 0, 1, 1)
 
         terminal_header = Label(markup="<b>Terminal Settings</b>", h_align="start")
         system_grid.attach(terminal_header, 0, 1, 2, 1)
@@ -1014,7 +1014,7 @@ class HyprConfGUI(Window):
         )
         current_bind_vars_snapshot["dock_icon_size"] = int(self.dock_size_scale.value)
         current_bind_vars_snapshot["terminal_command"] = self.terminal_entry.get_text()
-        current_bind_vars_snapshot["disable_auto_append_hyprland"] = self.disable_append_switch.get_active()
+        current_bind_vars_snapshot["auto_append_hyprland"] = self.auto_append_switch.get_active()
         current_bind_vars_snapshot["corners_visible"] = self.corners_switch.get_active()
         current_bind_vars_snapshot["bar_workspace_show_number"] = (
             self.ws_num_switch.get_active()
@@ -1160,9 +1160,9 @@ class HyprConfGUI(Window):
             try:
                 from .settings_constants import SOURCE_STRING
 
-                # Check if auto-append is disabled
-                disable_auto_append = current_bind_vars_snapshot.get("disable_auto_append_hyprland", False)
-                if not disable_auto_append:
+                # Check if auto-append is enabled
+                auto_append_enabled = current_bind_vars_snapshot.get("auto_append_hyprland", True)
+                if auto_append_enabled:
                     needs_append = True
                     if os.path.exists(hypr_path):
                         with open(hypr_path, "r") as f:
@@ -1293,8 +1293,8 @@ class HyprConfGUI(Window):
                 settings_utils.bind_vars.get("dock_icon_size", 28)
             )
             self.terminal_entry.set_text(settings_utils.bind_vars["terminal_command"])
-            self.disable_append_switch.set_active(
-                settings_utils.bind_vars.get("disable_auto_append_hyprland", False)
+            self.auto_append_switch.set_active(
+                settings_utils.bind_vars.get("auto_append_hyprland", True)
             )
             self.ws_num_switch.set_active(
                 settings_utils.bind_vars.get("bar_workspace_show_number", False)

@@ -60,7 +60,7 @@ DEFAULTS = {
     "centered_bar": False,
     "datetime_12h_format": False,  # Add this line
     "terminal_command": "kitty -e",
-    "disable_auto_append_hyprland": False,  # Disable auto-append of source string to hyprland.conf
+    "auto_append_hyprland": True,  # Enable auto-append of source string to hyprland.conf
     "dock_enabled": True,
     "dock_icon_size": 28,
     "dock_always_occluded": False,

@@ -1,7 +1,7 @@
 {
-	"version": "0.0.35", 
+	"version": "0.0.36", 
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> Calendar showing wrong weekday on some devices"
+    "<b>feat:</b> Toggle auto-append to hyprland.conf (Settings > System)"
   ]
 }
