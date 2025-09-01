@@ -2,6 +2,6 @@
 	"version": "0.0.36", 
   "pkg_update": false,
 	"changelog": [
-    "<b>feat:</b> Toggle auto-append to hyprland.conf (Settings > System)"
+    "<b>tweak:</b> General optimizations and bug fixes." 
   ]
 }
