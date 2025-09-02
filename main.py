@@ -41,21 +41,77 @@ if __name__ == "__main__":
     # Every hour
     GLib.timeout_add(3600000, run_updater)
 
-    corners = Corners()
-    bar = Bar()
-    notch = Notch()
-    dock = Dock()
-    bar.notch = notch
-    notch.bar = bar
-    notification = NotificationPopup(widgets=notch.dashboard.widgets)
+    # Initialize multi-monitor services
+    try:
+        from utils.monitor_manager import get_monitor_manager
+        from services.monitor_focus import get_monitor_focus_service
+        from utils.global_keybinds import init_global_keybind_objects
+        
+        monitor_manager = get_monitor_manager()
+        monitor_focus_service = get_monitor_focus_service()
+        monitor_manager.set_monitor_focus_service(monitor_focus_service)
+        init_global_keybind_objects()
+        
+        # Get all available monitors
+        monitors = monitor_manager.get_monitors()
+        multi_monitor_enabled = True
+    except ImportError:
+        # Fallback to single monitor mode
+        monitors = [{'id': 0, 'name': 'default'}]
+        monitor_manager = None
+        multi_monitor_enabled = False
+    
+    # Create application components list
+    app_components = []
+    corners = None
+    notification = None
+    
+    # Create components for each monitor
+    for monitor in monitors:
+        monitor_id = monitor['id']
+        
+        # Create corners only for the first monitor (shared across all)
+        if monitor_id == 0:
+            corners = Corners()
+            # Set corners visibility based on config
+            corners_visible = config.get("corners_visible", True)
+            corners.set_visible(corners_visible)
+            app_components.append(corners)
+        
+        # Create monitor-specific components
+        if multi_monitor_enabled:
+            bar = Bar(monitor_id=monitor_id)
+            notch = Notch(monitor_id=monitor_id)
+            dock = Dock(monitor_id=monitor_id)
+        else:
+            # Single monitor fallback
+            bar = Bar()
+            notch = Notch()
+            dock = Dock()
+        
+        # Connect bar and notch
+        bar.notch = notch
+        notch.bar = bar
+        
+        # Create notification popup for the first monitor only
+        if monitor_id == 0:
+            notification = NotificationPopup(widgets=notch.dashboard.widgets)
+            app_components.append(notification)
+        
+        # Register instances in monitor manager if available
+        if multi_monitor_enabled and monitor_manager:
+            monitor_manager.register_monitor_instances(monitor_id, {
+                'bar': bar,
+                'notch': notch,
+                'dock': dock,
+                'corners': corners if monitor_id == 0 else None
+            })
+        
+        # Add components to app list
+        app_components.extend([bar, notch, dock])
 
-    # Set corners visibility based on config
-    corners_visible = config.get("corners_visible", True)
-    corners.set_visible(corners_visible)
-
-    app = Application(
-        f"{APP_NAME}", bar, notch, dock, notification, corners
-    )  # Make sure corners is added to the app
+    # Create the application with all components
+    app = Application(f"{APP_NAME}", *app_components)
 
     def set_css():
         app.set_stylesheet_from_file(

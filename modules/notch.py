@@ -25,7 +25,16 @@ from widgets.wayland import WaylandWindow as Window
 
 
 class Notch(Window):
-    def __init__(self, **kwargs):
+    def __init__(self, monitor_id: int = 0, **kwargs):
+        self.monitor_id = monitor_id
+        self.monitor_manager = None
+        
+        # Get monitor manager
+        try:
+            from utils.monitor_manager import get_monitor_manager
+            self.monitor_manager = get_monitor_manager()
+        except ImportError:
+            pass
         is_panel_vertical = False
         if data.PANEL_THEME == "Panel":
             is_panel_vertical = data.VERTICAL
@@ -127,6 +136,7 @@ class Notch(Window):
             exclusivity="none" if data.PANEL_THEME == "Notch" else "normal",
             visible=True,
             all_visible=True,
+            monitor=monitor_id,
         )
 
         self._typed_chars_buffer = ""
@@ -153,7 +163,7 @@ class Notch(Window):
         self.nwconnections.set_visible(False)
 
         self.launcher = AppLauncher(notch=self)
-        self.overview = Overview()
+        self.overview = Overview(monitor_id=monitor_id)
         self.emoji = EmojiPicker(notch=self)
         self.power = PowerMenu(notch=self)
         self.tmux = TmuxManager(notch=self)
@@ -447,6 +457,10 @@ class Notch(Window):
         return False
 
     def close_notch(self):
+        # Update monitor manager state
+        if self.monitor_manager:
+            self.monitor_manager.set_notch_state(self.monitor_id, False)
+            
         self.set_keyboard_mode("none")
         self.notch_box.remove_style_class("open")
         self.stack.remove_style_class("open")
@@ -460,6 +474,21 @@ class Notch(Window):
             self.notch_revealer.set_reveal_child(False)
 
     def open_notch(self, widget_name: str):
+        # Handle monitor focus switching
+        if self.monitor_manager:
+            focused_monitor_id = self.monitor_manager.get_focused_monitor_id()
+            if focused_monitor_id != self.monitor_id:
+                # Close this notch and open on focused monitor
+                self.close_notch()
+                focused_notch = self.monitor_manager.get_focused_instance('notch')
+                if focused_notch and hasattr(focused_notch, 'open_notch'):
+                    focused_notch.open_notch(widget_name)
+                return
+            
+            # Close notches on other monitors
+            self.monitor_manager.close_all_notches_except(self.monitor_id)
+            self.monitor_manager.set_notch_state(self.monitor_id, True, widget_name)
+        
         self.notch_revealer.set_reveal_child(True)
         self.notch_box.add_style_class("open")
         self.stack.add_style_class("open")
