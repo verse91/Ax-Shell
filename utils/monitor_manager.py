@@ -65,17 +65,45 @@ class MonitorManager:
         if service:
             service.monitor_focused.connect(self._on_monitor_focused)
     
+    def _get_gtk_monitor_info(self) -> List[Dict]:
+        """Get monitor information using GTK/GDK including scale factors."""
+        gtk_monitors = []
+        try:
+            display = Gdk.Display.get_default()
+            if display and hasattr(display, 'get_n_monitors'):
+                n_monitors = display.get_n_monitors()
+                for i in range(n_monitors):
+                    monitor = display.get_monitor(i)
+                    if monitor:
+                        geometry = monitor.get_geometry()
+                        scale_factor = monitor.get_scale_factor()
+                        model = monitor.get_model() or f'monitor-{i}'
+                        
+                        gtk_monitors.append({
+                            'id': i,
+                            'name': model,
+                            'width': geometry.width,
+                            'height': geometry.height,
+                            'x': geometry.x,
+                            'y': geometry.y,
+                            'scale': scale_factor
+                        })
+        except Exception as e:
+            print(f"Error getting GTK monitor info: {e}")
+        
+        return gtk_monitors
+
     def refresh_monitors(self) -> List[Dict]:
         """
-        Detect monitors using Hyprland API with GTK fallback.
+        Detect monitors using Hyprland API for accurate info, with GTK for scale detection.
         
         Returns:
-            List of monitor dictionaries with id, name, width, height, x, y
+            List of monitor dictionaries with id, name, width, height, x, y, scale
         """
         self._monitors = []
         
         try:
-            # Try Hyprland first
+            # Try Hyprland first for primary info (more accurate)
             result = subprocess.run(
                 ["hyprctl", "monitors", "-j"],
                 capture_output=True,
@@ -85,14 +113,20 @@ class MonitorManager:
             hypr_monitors = json.loads(result.stdout)
             
             for i, monitor in enumerate(hypr_monitors):
+                monitor_name = monitor.get('name', f'monitor-{i}')
+                
+                # Get scale directly from Hyprland (more reliable)
+                hypr_scale = monitor.get('scale', 1.0)
+                
                 self._monitors.append({
                     'id': i,
-                    'name': monitor.get('name', f'monitor-{i}'),
+                    'name': monitor_name,
                     'width': monitor.get('width', 1920),
                     'height': monitor.get('height', 1080),
                     'x': monitor.get('x', 0),
                     'y': monitor.get('y', 0),
-                    'focused': monitor.get('focused', False)
+                    'focused': monitor.get('focused', False),
+                    'scale': hypr_scale
                 })
                 
                 # Initialize states for new monitors
@@ -101,7 +135,7 @@ class MonitorManager:
                     self._current_notch_module[i] = None
                     
         except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
-            # Fallback to GTK
+            # Fallback to GTK only if Hyprland fails
             self._fallback_to_gtk()
         
         # Ensure we have at least one monitor
@@ -113,7 +147,8 @@ class MonitorManager:
                 'height': 1080,
                 'x': 0,
                 'y': 0,
-                'focused': True
+                'focused': True,
+                'scale': 1.0
             }]
             self._notch_states[0] = False
             self._current_notch_module[0] = None
@@ -128,7 +163,7 @@ class MonitorManager:
         return self._monitors
     
     def _fallback_to_gtk(self):
-        """Fallback monitor detection using GTK."""
+        """Fallback monitor detection using GTK with scale information."""
         try:
             display = Gdk.Display.get_default()
             if display and hasattr(display, 'get_n_monitors'):
@@ -136,6 +171,7 @@ class MonitorManager:
                 for i in range(n_monitors):
                     monitor = display.get_monitor(i)
                     geometry = monitor.get_geometry()
+                    scale_factor = monitor.get_scale_factor()
                     
                     self._monitors.append({
                         'id': i,
@@ -144,7 +180,8 @@ class MonitorManager:
                         'height': geometry.height,
                         'x': geometry.x,
                         'y': geometry.y,
-                        'focused': i == 0  # Assume first monitor is focused
+                        'focused': i == 0,  # Assume first monitor is focused
+                        'scale': scale_factor
                     })
                     
                     if i not in self._notch_states:
@@ -199,6 +236,19 @@ class MonitorManager:
         if workspace_id <= 0:
             return 0
         return (workspace_id - 1) // 10
+    
+    def get_monitor_scale(self, monitor_id: int) -> float:
+        """
+        Get scale factor for a monitor.
+        
+        Args:
+            monitor_id: Monitor ID
+            
+        Returns:
+            Scale factor (default 1.0 if not found)
+        """
+        monitor = self.get_monitor_by_id(monitor_id)
+        return monitor.get('scale', 1.0) if monitor else 1.0
     
     def is_notch_open(self, monitor_id: int) -> bool:
         """Check if notch is open on a monitor."""

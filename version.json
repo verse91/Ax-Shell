@@ -1,7 +1,7 @@
 {
-	"version": "0.0.38", 
+	"version": "0.0.40", 
   "pkg_update": false,
 	"changelog": [
-    "<b>tweak:</b> General optimizations and bug fixes." 
+    "<b>feat:</b> Multi-monitor support"
   ]
 }

@@ -44,6 +44,7 @@ class MonitorFocusService:
         
         self._initialized = True
         self._monitor_name_to_id = {}
+        self._monitor_info = {}  # Store rich monitor information
         self._current_workspace = 1
         self._current_monitor_name = ""
         self._listening = False
@@ -57,7 +58,7 @@ class MonitorFocusService:
         self.start_listening()
     
     def _update_monitor_mapping(self):
-        """Update the monitor name to ID mapping."""
+        """Update the monitor name to ID mapping with rich monitor information."""
         try:
             # Import here to avoid circular imports
             from utils.monitor_manager import get_monitor_manager
@@ -65,11 +66,24 @@ class MonitorFocusService:
             monitors = manager.get_monitors()
             
             self._monitor_name_to_id = {}
+            self._monitor_info = {}  # Store rich monitor information
             for monitor in monitors:
-                self._monitor_name_to_id[monitor['name']] = monitor['id']
+                monitor_name = monitor['name']
+                monitor_id = monitor['id']
+                self._monitor_name_to_id[monitor_name] = monitor_id
+                self._monitor_info[monitor_id] = {
+                    'name': monitor_name,
+                    'width': monitor.get('width', 1920),
+                    'height': monitor.get('height', 1080),
+                    'x': monitor.get('x', 0),
+                    'y': monitor.get('y', 0),
+                    'scale': monitor.get('scale', 1.0),
+                    'focused': monitor.get('focused', False)
+                }
         except ImportError:
             # Fallback if monitor manager not available yet
             self._monitor_name_to_id = {}
+            self._monitor_info = {}
     
     def start_listening(self):
         """Start listening to Hyprland events in a separate thread."""
@@ -188,6 +202,24 @@ class MonitorFocusService:
     def get_monitor_id_by_name(self, monitor_name: str) -> Optional[int]:
         """Get monitor ID by name."""
         return self._monitor_name_to_id.get(monitor_name)
+    
+    def get_monitor_info(self, monitor_id: int) -> Optional[dict]:
+        """Get rich monitor information by ID."""
+        return self._monitor_info.get(monitor_id)
+    
+    def get_current_monitor_info(self) -> Optional[dict]:
+        """Get rich information for current monitor."""
+        current_id = self.get_current_monitor_id()
+        return self.get_monitor_info(current_id)
+    
+    def get_monitor_scale(self, monitor_id: int) -> float:
+        """Get monitor scale factor by ID."""
+        info = self.get_monitor_info(monitor_id)
+        return info.get('scale', 1.0) if info else 1.0
+    
+    def get_current_monitor_scale(self) -> float:
+        """Get current monitor scale factor."""
+        return self.get_monitor_scale(self.get_current_monitor_id())
 
 
 # Singleton accessor
