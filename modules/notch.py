@@ -474,20 +474,70 @@ class Notch(Window):
             self.notch_revealer.set_reveal_child(False)
 
     def open_notch(self, widget_name: str):
-        # Handle monitor focus switching
+        # Debug info for troubleshooting
+        if hasattr(self, '_debug_monitor_focus') and self._debug_monitor_focus:
+            print(f"DEBUG: open_notch called on monitor {self.monitor_id} for widget '{widget_name}'")
+        
+        # Handle monitor focus switching - always check real focused monitor from Hyprland
         if self.monitor_manager:
+            # Get real focused monitor directly from Hyprland to ensure accuracy
+            real_focused_monitor_id = self._get_real_focused_monitor_id()
+            
+            # Update monitor manager if we got a valid result
+            if real_focused_monitor_id is not None:
+                # Update the monitor manager's focused monitor
+                self.monitor_manager._focused_monitor_id = real_focused_monitor_id
+                if hasattr(self, '_debug_monitor_focus') and self._debug_monitor_focus:
+                    print(f"DEBUG: Real focused monitor from Hyprland: {real_focused_monitor_id}")
+            
             focused_monitor_id = self.monitor_manager.get_focused_monitor_id()
+            
             if focused_monitor_id != self.monitor_id:
                 # Close this notch and open on focused monitor
+                if hasattr(self, '_debug_monitor_focus') and self._debug_monitor_focus:
+                    print(f"DEBUG: Redirecting from monitor {self.monitor_id} to focused monitor {focused_monitor_id}")
+                
                 self.close_notch()
-                focused_notch = self.monitor_manager.get_focused_instance('notch')
+                focused_notch = self.monitor_manager.get_instance(focused_monitor_id, 'notch')
                 if focused_notch and hasattr(focused_notch, 'open_notch'):
-                    focused_notch.open_notch(widget_name)
+                    # Recursively call open_notch on the correct monitor instance
+                    focused_notch._open_notch_internal(widget_name)
                 return
             
             # Close notches on other monitors
             self.monitor_manager.close_all_notches_except(self.monitor_id)
             self.monitor_manager.set_notch_state(self.monitor_id, True, widget_name)
+        
+        # Call internal open_notch implementation
+        self._open_notch_internal(widget_name)
+    
+    def _get_real_focused_monitor_id(self):
+        """Get the real focused monitor ID directly from Hyprland."""
+        try:
+            import json
+            import subprocess
+            
+            # Get focused monitor from Hyprland
+            result = subprocess.run(
+                ["hyprctl", "monitors", "-j"],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=2.0
+            )
+            
+            monitors = json.loads(result.stdout)
+            for i, monitor in enumerate(monitors):
+                if monitor.get('focused', False):
+                    return i
+                    
+        except (subprocess.CalledProcessError, json.JSONDecodeError, 
+                FileNotFoundError, subprocess.TimeoutExpired) as e:
+            print(f"Warning: Could not get focused monitor from Hyprland: {e}")
+        
+        return None
+    
+    def _open_notch_internal(self, widget_name: str):
         
         self.notch_revealer.set_reveal_child(True)
         self.notch_box.add_style_class("open")
