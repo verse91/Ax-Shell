@@ -140,7 +140,7 @@ curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | 
 - [x] Vertical Layout
 - [x] Wallpaper Selector
 - [x] Workspaces Overview
-- [ ] Multi-monitor support
+- [x] Multi-monitor support
 - [ ] Multimodal AI Assistant
 - [ ] OSD
 - [ ] OTP Manager
