@@ -2,6 +2,7 @@
 	"version": "0.0.41", 
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> Hover to show notch not working"
+    "<b>fix:</b> Hover to show notch not working",
+    "<b>tweak:</b> Optimized cavalcade"
   ]
 }
