@@ -340,14 +340,6 @@ class Notch(Window):
             child_revealed=True,
             child=self.notch_box,
         )
-
-        if data.PANEL_THEME == "Notch":
-            self.notch_revealer.connect(
-                "enter-notify-event", self.on_notch_hover_area_enter
-            )
-            self.notch_revealer.connect(
-                "leave-notify-event", self.on_notch_hover_area_leave
-            )
         
         self.notch_revealer.set_size_request(-1, 1)
 
@@ -391,7 +383,25 @@ class Notch(Window):
             children=self.notch_children,
         )
 
-        self.add(self.notch_wrap)
+        # Create top-level EventBox that wraps the entire notch for hover detection
+        if data.PANEL_THEME == "Notch":
+            self.hover_eventbox = Gtk.EventBox(name="notch-hover-eventbox")
+            self.hover_eventbox.add(self.notch_wrap)
+            self.hover_eventbox.set_visible(True)
+            # Set minimum size to ensure hover detection area is always available
+            self.hover_eventbox.set_size_request(260, 4)  # Width matches compact size, min height for hover
+            self.hover_eventbox.add_events(
+                Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK
+            )
+            self.hover_eventbox.connect(
+                "enter-notify-event", self.on_notch_hover_area_enter
+            )
+            self.hover_eventbox.connect(
+                "leave-notify-event", self.on_notch_hover_area_leave
+            )
+            self.add(self.hover_eventbox)
+        else:
+            self.add(self.notch_wrap)
         self.show_all()
 
         self.add_keybinding("Escape", lambda *_: self.close_notch())

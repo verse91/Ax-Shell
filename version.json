@@ -1,7 +1,7 @@
 {
-	"version": "0.0.40", 
+	"version": "0.0.41", 
   "pkg_update": false,
 	"changelog": [
-    "<b>feat:</b> Multi-monitor support"
+    "<b>fix:</b> Hover to show notch not working"
   ]
 }
