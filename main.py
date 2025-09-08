@@ -53,13 +53,38 @@ if __name__ == "__main__":
         init_global_keybind_objects()
         
         # Get all available monitors
-        monitors = monitor_manager.get_monitors()
+        all_monitors = monitor_manager.get_monitors()
         multi_monitor_enabled = True
     except ImportError:
         # Fallback to single monitor mode
-        monitors = [{'id': 0, 'name': 'default'}]
+        all_monitors = [{'id': 0, 'name': 'default'}]
         monitor_manager = None
         multi_monitor_enabled = False
+    
+    # Filter monitors based on selected_monitors configuration
+    selected_monitors_config = config.get("selected_monitors", [])
+    
+    # If selected_monitors is empty, show on all monitors (current behavior)
+    if not selected_monitors_config:
+        monitors = all_monitors
+        print("Ax-Shell: No specific monitors selected, showing on all monitors")
+    else:
+        # Filter monitors to only include selected ones
+        monitors = []
+        selected_monitor_names = set(selected_monitors_config)
+        
+        for monitor in all_monitors:
+            monitor_name = monitor.get('name', f'monitor-{monitor.get("id", 0)}')
+            if monitor_name in selected_monitor_names:
+                monitors.append(monitor)
+                print(f"Ax-Shell: Including monitor '{monitor_name}' (selected)")
+            else:
+                print(f"Ax-Shell: Excluding monitor '{monitor_name}' (not selected)")
+        
+        # Fallback: if no valid monitors found, use all monitors
+        if not monitors:
+            print("Ax-Shell: No valid selected monitors found, falling back to all monitors")
+            monitors = all_monitors
     
     # Create application components list
     app_components = []

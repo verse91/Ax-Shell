@@ -683,25 +683,74 @@ class HyprConfGUI(Window):
         auto_append_switch_container.add(self.auto_append_switch)
         system_grid.attach(auto_append_switch_container, 1, 0, 1, 1)
 
+        # Monitor Selection - second option
+        monitor_header = Label(markup="<b>Monitor Selection</b>", h_align="start")
+        system_grid.attach(monitor_header, 0, 1, 2, 1)
+        
+        monitor_label = Label(
+            label="Show Ax-Shell on monitors:", h_align="start", v_align="center"
+        )
+        system_grid.attach(monitor_label, 0, 2, 1, 1)
+        
+        # Create monitor selection container
+        self.monitor_selection_container = Box(orientation="v", spacing=5, h_align="start")
+        self.monitor_checkboxes = {}
+        
+        # Get available monitors
+        try:
+            from utils.monitor_manager import get_monitor_manager
+            monitor_manager = get_monitor_manager()
+            available_monitors = monitor_manager.get_monitors()
+        except (ImportError, Exception) as e:
+            print(f"Could not get monitor info for settings: {e}")
+            available_monitors = [{'id': 0, 'name': 'default'}]
+        
+        # Get current selection from config
+        current_selection = bind_vars.get("selected_monitors", [])
+        
+        # Create checkboxes for each monitor
+        for monitor in available_monitors:
+            monitor_name = monitor.get('name', f'monitor-{monitor.get("id", 0)}')
+            
+            checkbox_container = Box(orientation="h", spacing=5, h_align="start")
+            checkbox = Gtk.CheckButton(label=monitor_name)
+            
+            # Check if this monitor is selected (empty selection means all selected)
+            is_selected = len(current_selection) == 0 or monitor_name in current_selection
+            checkbox.set_active(is_selected)
+            
+            checkbox_container.add(checkbox)
+            self.monitor_selection_container.add(checkbox_container)
+            self.monitor_checkboxes[monitor_name] = checkbox
+        
+        # Add hint label
+        hint_label = Label(
+            markup="<small>Leave all unchecked to show on all monitors</small>",
+            h_align="start",
+        )
+        self.monitor_selection_container.add(hint_label)
+        
+        system_grid.attach(self.monitor_selection_container, 1, 2, 1, 1)
+
         terminal_header = Label(markup="<b>Terminal Settings</b>", h_align="start")
-        system_grid.attach(terminal_header, 0, 1, 2, 1)
+        system_grid.attach(terminal_header, 0, 3, 2, 1)
         terminal_label = Label(label="Command:", h_align="start", v_align="center")
-        system_grid.attach(terminal_label, 0, 2, 1, 1)
+        system_grid.attach(terminal_label, 0, 4, 1, 1)
         self.terminal_entry = Entry(
             text=bind_vars.get("terminal_command", "kitty -e"),
             tooltip_text="Command used to launch terminal apps (e.g., 'kitty -e')",
             h_expand=True,
         )
-        system_grid.attach(self.terminal_entry, 1, 2, 1, 1)
+        system_grid.attach(self.terminal_entry, 1, 4, 1, 1)
         hint_label = Label(
             markup="<small>Examples: 'kitty -e', 'alacritty -e', 'foot -e'</small>",
             h_align="start",
         )
-        system_grid.attach(hint_label, 0, 3, 2, 1)
+        system_grid.attach(hint_label, 0, 5, 2, 1)
 
         hypr_header = Label(markup="<b>Hyprland Integration</b>", h_align="start")
-        system_grid.attach(hypr_header, 2, 1, 2, 1)
-        row = 2
+        system_grid.attach(hypr_header, 2, 3, 2, 1)
+        row = 4
         self.lock_switch = None
         if self.show_lock_checkbox:
             lock_label = Label(
@@ -1083,6 +1132,17 @@ class HyprConfGUI(Window):
             self.ignored_apps_entry.get_text()
         )
 
+        # Save monitor selection
+        selected_monitors = []
+        any_checked = False
+        for monitor_name, checkbox in self.monitor_checkboxes.items():
+            if checkbox.get_active():
+                selected_monitors.append(monitor_name)
+                any_checked = True
+        
+        # If no monitors are checked, use empty array (means show on all monitors)
+        current_bind_vars_snapshot["selected_monitors"] = selected_monitors if any_checked else []
+
         selected_icon_path = self.selected_face_icon
         replace_lock = self.lock_switch and self.lock_switch.get_active()
         replace_idle = self.idle_switch and self.idle_switch.get_active()
@@ -1400,6 +1460,13 @@ class HyprConfGUI(Window):
             ignored_apps_list = DEFAULTS.get("history_ignored_apps", ["Hyprshot"])
             ignored_apps_text = ", ".join(f'"{app}"' for app in ignored_apps_list)
             self.ignored_apps_entry.set_text(ignored_apps_text)
+
+            # Reset monitor selection
+            default_monitors = DEFAULTS.get("selected_monitors", [])
+            for monitor_name, checkbox in self.monitor_checkboxes.items():
+                # If defaults is empty, check all monitors (show on all)
+                is_selected = len(default_monitors) == 0 or monitor_name in default_monitors
+                checkbox.set_active(is_selected)
 
             self._update_panel_position_sensitivity()
 
