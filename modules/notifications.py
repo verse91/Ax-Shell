@@ -530,8 +530,6 @@ class NotificationHistory(Box):
         self.add(self.history_header)
         self.add(self.scrolled_window)
         GLib.idle_add(self._load_persistent_history().__next__)
-        self._cleanup_orphan_cached_images()
-        self.schedule_midnight_update()
 
     def get_ordinal(self, n):
         if 11 <= (n % 100) <= 13:
@@ -659,10 +657,12 @@ class NotificationHistory(Box):
                     self.persistent_notifications = json.load(f)
                 for note in reversed(self.persistent_notifications):
                     self._add_historical_notification(note)
-                    yield
+                    yield True
             except Exception as e:
                 logger.error(f"Error loading persistent history: {e}")
         GLib.idle_add(self.update_no_notifications_label_visibility)
+        self._cleanup_orphan_cached_images()
+        self.schedule_midnight_update()
 
     def _save_persistent_history(self):
         try:
