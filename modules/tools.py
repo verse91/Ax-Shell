@@ -48,7 +48,7 @@ Enter: HEX
 Shift+Enter: RGB
 Ctrl+Enter: HSV"""
 
-tooltip_gamemode = "<b>Game Mode</b>"
+tooltip_gamemode = "<b>Game Mode</b>\nDisables effects and window animations for better performance."
 tooltip_pomodoro = "<b>Pomodoro Timer</b>"
 tooltip_emoji = "<b>Emoji Picker</b>"
 

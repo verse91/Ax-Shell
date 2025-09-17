@@ -1,11 +1,13 @@
 {
-	"version": "0.0.42", 
+	"version": "0.0.43", 
   "pkg_update": false,
 	"changelog": [
     "<b>feat:</b> Added custom monitor for Ax-Shell to appear in the settings.",
+    "<b>feat:</b> Right-click dashboard tabs to close (<a href='https://github.com/Axenide/Ax-Shell/pull/224'>#224</a>)",
     "<b>fix:</b> Async initialization (<a href='https://github.com/Axenide/Ax-Shell/pull/269'>#269</a>)",
     "<b>fix:</b> Enhanced systray icon resolving (<a href='https://github.com/Axenide/Ax-Shell/pull/268'>#268</a>)",
     "<b>fix:</b> Ghost notification (<a href='https://github.com/Axenide/Ax-Shell/pull/243'>#243</a>)",
-    "<b>tweak:</b> Redundant if statement (<a href='https://github.com/Axenide/Ax-Shell/pull/234'>#234</a>)"
+    "<b>tweak:</b> Redundant if statement (<a href='https://github.com/Axenide/Ax-Shell/pull/234'>#234</a>)",
+    "<b>tweak:</b> Updated Game Mode tooltip"
   ]
 }
