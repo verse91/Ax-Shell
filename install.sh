@@ -40,6 +40,8 @@ PACKAGES=(
   swappy
   swww-git
   tesseract
+  tesseract-data-eng
+  tesseract-data-spa
   tmux
   ttf-nerd-fonts-symbols-mono
   unzip
