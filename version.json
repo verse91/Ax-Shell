@@ -1,7 +1,9 @@
 {
-	"version": "0.0.44", 
+	"version": "0.0.45", 
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> Multiple network fixes (<a href='https://github.com/Axenide/Ax-Shell/pull/270'>#270</a>)"
+    "<b>fix:</b> General optimizartions",
+    "<b>removal:</b> Occlusion for the dock; caused locking issues. (Might be re-added in the future)",
+    "<b>feat:</b> Reserve dock space"
   ]
 }
