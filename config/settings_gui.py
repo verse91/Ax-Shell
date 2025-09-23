@@ -335,7 +335,7 @@ class HyprConfGUI(Window):
         layout_grid.attach(dock_switch_container, 1, 1, 1, 1)
 
         dock_hover_label = Label(
-            label="Show Dock Only on Hover", h_align="start", v_align="center"
+            label="Always Show Dock", h_align="start", v_align="center"
         )
         layout_grid.attach(dock_hover_label, 2, 1, 1, 1)
         dock_hover_switch_container = Gtk.Box(
@@ -344,7 +344,7 @@ class HyprConfGUI(Window):
             valign=Gtk.Align.CENTER,
         )
         self.dock_hover_switch = Gtk.Switch(
-            active=bind_vars.get("dock_always_occluded", False),
+            active=bind_vars.get("dock_always_show", False),
             sensitive=self.dock_switch.get_active(),
         )
         dock_hover_switch_container.add(self.dock_hover_switch)
@@ -1058,7 +1058,7 @@ class HyprConfGUI(Window):
             self.datetime_12h_switch.get_active()
         )
         current_bind_vars_snapshot["dock_enabled"] = self.dock_switch.get_active()
-        current_bind_vars_snapshot["dock_always_occluded"] = (
+        current_bind_vars_snapshot["dock_always_show"] = (
             self.dock_hover_switch.get_active()
         )
         current_bind_vars_snapshot["dock_icon_size"] = int(self.dock_size_scale.value)
@@ -1346,7 +1346,7 @@ class HyprConfGUI(Window):
                 settings_utils.bind_vars.get("dock_enabled", True)
             )
             self.dock_hover_switch.set_active(
-                settings_utils.bind_vars.get("dock_always_occluded", False)
+                settings_utils.bind_vars.get("dock_always_show", False)
             )
             self.dock_hover_switch.set_sensitive(self.dock_switch.get_active())
             self.dock_size_scale.set_value(

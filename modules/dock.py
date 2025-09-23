@@ -16,7 +16,6 @@ from gi.repository import Gdk, GLib, Gtk
 import config.data as data
 from modules.corners import MyCorner
 from utils.icon_resolver import IconResolver
-from utils.occlusion import check_occlusion
 from widgets.wayland import WaylandWindow as Window
 
 
@@ -75,6 +74,7 @@ class Dock(Window):
         self.integrated_mode = integrated_mode
         self.icon_size = 20 if self.integrated_mode else data.DOCK_ICON_SIZE
         self.effective_occlusion_size = 36 + self.icon_size
+        self.always_show = data.DOCK_ALWAYS_SHOW if not self.integrated_mode else False
 
         anchor_to_set: str
         revealer_transition_type: str
@@ -115,7 +115,7 @@ class Dock(Window):
                 layer="top",
                 anchor=anchor_to_set,
                 margin="0px 0px 0px 0px",
-                exclusivity="none",
+                exclusivity="auto" if self.always_show else "none",
                 monitor=monitor_id,
                 **kwargs,
             )
@@ -129,6 +129,19 @@ class Dock(Window):
             main_box_orientation_val = Gtk.Orientation.VERTICAL
             main_box_h_align_val = "center"
 
+        if not self.integrated_mode:
+            match data.BAR_POSITION:
+                case "Top":
+                    self.set_margin("-8px 0px 0px 0px")
+                case "Bottom":
+                    self.set_margin("0px 0px 0px 0px")
+                case "Left":
+                    self.set_margin("0px 0px 0px -8px")
+                case "Right":
+                    self.set_margin("0px -8px 0px 0px")
+                case _:
+                    self.set_margin("0px 0px 0px 0px")
+
         self.config = read_config()
         self.conn = get_hyprland_connection()
         self.icon_resolver = IconResolver() 
@@ -141,7 +154,6 @@ class Dock(Window):
         self.hide_id = None
         self._arranger_handler = None
         self._drag_in_progress = False
-        self.always_occluded = data.DOCK_ALWAYS_OCCLUDED if not self.integrated_mode else False
         self.is_mouse_over_dock_area = False
         self._prevent_occlusion = False
 
@@ -254,7 +266,7 @@ class Dock(Window):
             if should_be_embedded or not data.DOCK_ENABLED:
                 self.set_visible(False) 
             
-            if self.always_occluded: 
+            if self.always_show: 
                 self.dock_full.add_style_class("occluded")
 
         self.view.drag_source_set(
@@ -323,7 +335,7 @@ class Dock(Window):
             GLib.source_remove(self.hide_id)
             self.hide_id = None
         self.dock_revealer.set_reveal_child(True)
-        if not self.always_occluded:
+        if not self.always_show:
             self.dock_full.remove_style_class("occluded")
 
     def _on_hover_leave(self, *args):
@@ -338,7 +350,7 @@ class Dock(Window):
             GLib.source_remove(self.hide_id)
             self.hide_id = None
         self.dock_revealer.set_reveal_child(True)
-        if not self.always_occluded:
+        if not self.always_show:
             self.dock_full.remove_style_class("occluded")
         return True
 
@@ -350,7 +362,7 @@ class Dock(Window):
         self.is_mouse_over_dock_area = False
         self.delay_hide()
         
-        if self.always_occluded:
+        if not self.always_show:
             self.dock_full.add_style_class("occluded")
         return True
 
@@ -474,13 +486,8 @@ class Dock(Window):
             return False 
         self.hide_id = None 
         if not self.is_mouse_over_dock_area and not self._drag_in_progress and not self._prevent_occlusion:
-            if self.always_occluded:
+            if not self.always_show:
                 self.dock_revealer.set_reveal_child(False)
-            else:
-
-                occlusion_region = ("bottom", self.effective_occlusion_size) if self.actual_dock_is_horizontal else ("right", self.effective_occlusion_size)
-                if check_occlusion(occlusion_region) or not self.view.get_children():
-                    self.dock_revealer.set_reveal_child(False)
         return False
 
     def check_hide(self, *args):
@@ -493,17 +500,10 @@ class Dock(Window):
         current_ws = self.get_workspace()
         ws_clients = [w for w in clients if w["workspace"]["id"] == current_ws]
 
-        if not self.always_occluded:
-            if not ws_clients:
-                if not self.dock_revealer.get_reveal_child():
-                    self.dock_revealer.set_reveal_child(True)
-                self.dock_full.remove_style_class("occluded")
-            elif any(not w.get("floating") and not w.get("fullscreen") for w in ws_clients):
-                self.check_occlusion_state()
-            else:
-                if not self.dock_revealer.get_reveal_child():
-                    self.dock_revealer.set_reveal_child(True)
-                self.dock_full.remove_style_class("occluded")
+        if self.always_show:
+            if not self.dock_revealer.get_reveal_child():
+                self.dock_revealer.set_reveal_child(True)
+            self.dock_full.remove_style_class("occluded")
         else:
             if self.dock_revealer.get_reveal_child():
                 self.dock_revealer.set_reveal_child(False)
@@ -630,34 +630,24 @@ class Dock(Window):
 
     def check_occlusion_state(self):
         if self.integrated_mode:
-            return False 
-            
+            return False
+
         if self.is_mouse_over_dock_area or self._drag_in_progress or self._prevent_occlusion:
             if not self.dock_revealer.get_reveal_child():
                 self.dock_revealer.set_reveal_child(True)
-            if not self.always_occluded:
+            if not self.always_show:
                  self.dock_full.remove_style_class("occluded")
             return True
 
-        if self.always_occluded:
-            if self.dock_revealer.get_reveal_child():
-                self.dock_revealer.set_reveal_child(False)
-            self.dock_full.add_style_class("occluded")
-            return True
-
-        occlusion_region = ("bottom", self.effective_occlusion_size) if self.actual_dock_is_horizontal else ("right", self.effective_occlusion_size)
-        is_occluded_by_window = check_occlusion(occlusion_region)
-        is_empty = not self.view.get_children()
-
-        if is_occluded_by_window or is_empty:
-            if self.dock_revealer.get_reveal_child():
-                self.dock_revealer.set_reveal_child(False)
-            self.dock_full.add_style_class("occluded")
-        else:
+        if self.always_show:
             if not self.dock_revealer.get_reveal_child():
                 self.dock_revealer.set_reveal_child(True)
             self.dock_full.remove_style_class("occluded")
-        
+        else:
+            if self.dock_revealer.get_reveal_child():
+                self.dock_revealer.set_reveal_child(False)
+            self.dock_full.add_style_class("occluded")
+
         return True
 
     def _find_drag_target(self, widget):
@@ -746,9 +736,9 @@ class Dock(Window):
     def check_config_change(self):
         new_config = read_config()
         if not self.integrated_mode:
-            new_always_occluded = data.DOCK_ALWAYS_OCCLUDED 
-            if self.always_occluded != new_always_occluded:
-                self.always_occluded = new_always_occluded
+            new_always_show = data.DOCK_ALWAYS_SHOW 
+            if self.always_show != new_always_show:
+                self.always_show = new_always_show
                 self.check_occlusion_state() 
 
         if new_config.get("pinned_apps", []) != self.config.get("pinned_apps", []):
@@ -799,10 +789,10 @@ class Dock(Window):
         new_config = read_config()
         
         if not self.integrated_mode:
-            previous_always_occluded = self.always_occluded
-            self.always_occluded = data.DOCK_ALWAYS_OCCLUDED 
+            previous_always_show = self.always_show
+            self.always_show = data.DOCK_ALWAYS_SHOW 
             
-            if previous_always_occluded != self.always_occluded:
+            if previous_always_show != self.always_show:
                 self.check_occlusion_state() 
         
         if new_config.get("pinned_apps", []) != self.config.get("pinned_apps", []):
