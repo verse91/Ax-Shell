@@ -232,9 +232,9 @@ class Toolbox(Box):
 
         self.show_all()
 
-        self.recorder_timer_id = GLib.timeout_add_seconds(1, self.update_screenrecord_state)
-        self.gamemode_updater = GLib.timeout_add_seconds(1, self.gamemode_check)
-        self.pomodoro_updater = GLib.timeout_add_seconds(1, self.pomodoro_check)
+        self.recorder_timer_id = GLib.timeout_add_seconds(2, self.update_screenrecord_state)
+        self.gamemode_updater = GLib.timeout_add_seconds(2, self.gamemode_check)
+        self.pomodoro_updater = GLib.timeout_add_seconds(2, self.pomodoro_check)
 
     def close_menu(self):
         self.notch.close_notch()

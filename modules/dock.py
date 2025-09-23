@@ -274,7 +274,7 @@ class Dock(Window):
 
         if self.conn.ready:
             self.update_dock()
-            if not self.integrated_mode: GLib.timeout_add(250, self.check_occlusion_state)
+            if not self.integrated_mode: GLib.timeout_add(500, self.check_occlusion_state)
         else:
             self.conn.connect("event::ready", self.update_dock)
             if not self.integrated_mode: self.conn.connect("event::ready", lambda *args: GLib.timeout_add(250, self.check_occlusion_state))
@@ -285,7 +285,7 @@ class Dock(Window):
         if not self.integrated_mode:
             self.conn.connect("event::workspace", self.check_hide)
         
-        GLib.timeout_add_seconds(1, self.check_config_change)
+        GLib.timeout_add_seconds(2, self.check_config_change)
             
     def _build_app_identifiers_map(self):
         identifiers = {}

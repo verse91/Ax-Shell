@@ -41,16 +41,20 @@ class MetricsProvider:
         self.bat_time = 0
 
         self._gpu_update_running = False
+        self._gpu_update_counter = 0
 
-        GLib.timeout_add_seconds(1, self._update)
+        GLib.timeout_add_seconds(2, self._update)
 
     def _update(self):
         self.cpu = psutil.cpu_percent(interval=0)
         self.mem = psutil.virtual_memory().percent
         self.disk = [psutil.disk_usage(path).percent for path in data.BAR_METRICS_DISKS]
 
-        if not self._gpu_update_running:
-            self._start_gpu_update_async()
+        self._gpu_update_counter += 1
+        if self._gpu_update_counter >= 5:  # Update GPU every 10 seconds (5 * 2s)
+            self._gpu_update_counter = 0
+            if not self._gpu_update_running:
+                self._start_gpu_update_async()
 
         battery = self.upower.get_full_device_information(self.display_device)
         if battery is None:
@@ -221,7 +225,7 @@ class Metrics(Box):
         for x in self.scales:
             self.add(x)
 
-        GLib.timeout_add_seconds(1, self.update_status)
+        GLib.timeout_add_seconds(2, self.update_status)
 
     def update_status(self):
         cpu, mem, disks, gpus = shared_provider.get_metrics()
@@ -318,7 +322,7 @@ class MetricsSmall(Button):
         self.connect("enter-notify-event", self.on_mouse_enter)
         self.connect("leave-notify-event", self.on_mouse_leave)
 
-        GLib.timeout_add_seconds(1, self.update_metrics)
+        GLib.timeout_add_seconds(2, self.update_metrics)
 
         self.hide_timer = None
         self.hover_counter = 0

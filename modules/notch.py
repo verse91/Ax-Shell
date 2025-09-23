@@ -424,7 +424,7 @@ class Notch(Window):
         self._current_window_class = self._get_current_window_class()
 
         if data.PANEL_THEME == "Notch" and data.BAR_POSITION != "Top":
-            GLib.timeout_add(250, self._check_occlusion)
+            GLib.timeout_add(500, self._check_occlusion)
         elif data.PANEL_THEME == "Notch":
             self.notch_revealer.set_reveal_child(True)
         else:
@@ -523,10 +523,21 @@ class Notch(Window):
     
     def _get_real_focused_monitor_id(self):
         """Get the real focused monitor ID directly from Hyprland."""
+        # Use thread to avoid blocking UI
+        self._focused_monitor_result = None
+        GLib.Thread.new("get-focused-monitor", self._get_focused_monitor_thread, None)
+        # Wait for result (not ideal, but for compatibility)
+        import time
+        start = time.time()
+        while self._focused_monitor_result is None and time.time() - start < 2.0:
+            time.sleep(0.01)
+        return self._focused_monitor_result
+
+    def _get_focused_monitor_thread(self, user_data):
         try:
             import json
             import subprocess
-            
+
             # Get focused monitor from Hyprland
             result = subprocess.run(
                 ["hyprctl", "monitors", "-j"],
@@ -535,17 +546,18 @@ class Notch(Window):
                 check=True,
                 timeout=2.0
             )
-            
+
             monitors = json.loads(result.stdout)
             for i, monitor in enumerate(monitors):
                 if monitor.get('focused', False):
-                    return i
-                    
-        except (subprocess.CalledProcessError, json.JSONDecodeError, 
+                    self._focused_monitor_result = i
+                    return
+
+        except (subprocess.CalledProcessError, json.JSONDecodeError,
                 FileNotFoundError, subprocess.TimeoutExpired) as e:
             print(f"Warning: Could not get focused monitor from Hyprland: {e}")
-        
-        return None
+
+        self._focused_monitor_result = None
     
     def _open_notch_internal(self, widget_name: str):
         
@@ -723,7 +735,7 @@ class Notch(Window):
 
         self.compact_stack.set_visible_child(children[new_index])
         self._scrolling = True
-        GLib.timeout_add(250, self._reset_scrolling)
+        GLib.timeout_add(500, self._reset_scrolling)
         return True
 
     def _reset_scrolling(self):
