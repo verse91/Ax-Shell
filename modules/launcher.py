@@ -567,18 +567,34 @@ class AppLauncher(Box):
         if not expr:
             return
 
-        try:
-            result_value, result_type = self.converter.parse_input_and_convert(expr)
-            if result_type is None:
-                result_str = f"{result_value:.2f}"
-            else:
-                result_str = f"{result_value:.2f} {result_type}"
-        except:
-            result_str = "Error: Invalid conversion expression"
-        
-        # Format the result based on its type
-        
-        self.conversion_history.insert(0, f"{text} => {result_str}")
+        # Add loading entry
+        loading_entry = f"{text} => Loading..."
+        self.conversion_history.insert(0, loading_entry)
+        self.update_conversion_viewport()
+
+        # Perform conversion in thread
+        def do_conversion():
+            try:
+                result_value, result_type = self.converter.parse_input_and_convert(expr)
+                if result_type is None:
+                    result_str = f"{result_value:.2f}"
+                else:
+                    result_str = f"{result_value:.2f} {result_type}"
+            except:
+                result_str = "Error: Invalid conversion expression"
+
+            # Update the history entry
+            GLib.idle_add(self._update_conversion_result, text, result_str)
+
+        GLib.Thread.new("conversion", do_conversion, None)
+
+    def _update_conversion_result(self, text, result_str):
+        # Replace the loading entry with the result
+        if self.conversion_history and self.conversion_history[0].startswith(f"{text} => Loading"):
+            self.conversion_history[0] = f"{text} => {result_str}"
+        else:
+            # Fallback: insert new
+            self.conversion_history.insert(0, f"{text} => {result_str}")
         self.save_conversion_history()
         self.update_conversion_viewport()
         
