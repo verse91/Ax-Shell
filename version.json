@@ -1,9 +1,7 @@
 {
-	"version": "0.0.45", 
+	"version": "0.0.46", 
   "pkg_update": false,
 	"changelog": [
-    "<b>fix:</b> General optimizartions",
-    "<b>removal:</b> Occlusion for the dock; caused locking issues. (Might be re-added in the future)",
-    "<b>feat:</b> Reserve dock space"
+    "<b>revert:</b> Network changes. I hope this will fix the extreme lag."
   ]
 }
