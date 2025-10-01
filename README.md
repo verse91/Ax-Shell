@@ -58,6 +58,10 @@
 curl -fsSL https://raw.githubusercontent.com/Axenide/Ax-Shell/main/install.sh | bash
 ```
 
+### NixOS
+[poogas](https://github.com/poogas) has created a flake for Ax-Shell.
+👉 [Try it out!](https://github.com/poogas/Ax-Shell) 👈
+
 ### Manual Installation
 1. Install dependencies:
     - [Fabric](https://github.com/Fabric-Development/fabric)
