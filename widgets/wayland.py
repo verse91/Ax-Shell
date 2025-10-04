@@ -28,27 +28,10 @@ class WaylandWindowExclusivity(Enum):
     AUTO = 3
 
 
-class Layer(GObject.GEnum):
-    BACKGROUND = 0
-    BOTTOM = 1
-    TOP = 2
-    OVERLAY = 3
-    ENTRY_NUMBER = 4
-
-
-class KeyboardMode(GObject.GEnum):
-    NONE = 0
-    EXCLUSIVE = 1
-    ON_DEMAND = 2
-    ENTRY_NUMBER = 3
-
-
-class Edge(GObject.GEnum):
-    LEFT = 0
-    RIGHT = 1
-    TOP = 2
-    BOTTOM = 3
-    ENTRY_NUMBER = 4
+# Use built-in enums from GtkLayerShell
+Layer = GtkLayerShell.Layer
+KeyboardMode = GtkLayerShell.KeyboardMode
+Edge = GtkLayerShell.Edge
 
 
 class WaylandWindow(Window):
@@ -200,26 +183,6 @@ class WaylandWindow(Window):
             GtkLayerShell.set_margin(self, edge, mrgv)
         return
 
-    @Property(object, "read-write")
-    def keyboard_mode(self):
-        kb_mode = GtkLayerShell.get_keyboard_mode(self)
-        if GtkLayerShell.get_keyboard_interactivity(self):
-            kb_mode = KeyboardMode.EXCLUSIVE
-        return kb_mode
-
-    @keyboard_mode.setter
-    def keyboard_mode(
-        self,
-        value: Literal["none", "exclusive", "on-demand"] | KeyboardMode,
-    ):
-        return GtkLayerShell.set_keyboard_mode(
-            self,
-            get_enum_member(
-                KeyboardMode,
-                value,
-                default=KeyboardMode.NONE,
-            ),
-        )
 
     def __init__(
         self,
