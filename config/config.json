@@ -62,7 +62,7 @@
     "bar_network_visible": true,
     "bar_button_tools_visible": true,
     "bar_sysprofiles_visible": false,
-    "bar_button_overview_visible": true,
+    "bar_button_overview_visible": false,
     "bar_ws_container_visible": true,
     "bar_weather_visible": true,
     "bar_battery_visible": true,

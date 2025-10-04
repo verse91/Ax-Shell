@@ -536,6 +536,7 @@ class NetworkApplet(Button):
         self.network_client = NetworkClient()
         self.upload_label = Label(name="upload-label", markup="Upload: 0 B/s")
         self.wifi_label = Label(name="network-icon-label", markup="WiFi: Unknown")
+        self.network_name_label = Label(name="network-name-label", markup="Unknown")
 
         self.is_mouse_over = False
         self.downloading = False
@@ -555,9 +556,16 @@ class NetworkApplet(Button):
         self.download_revealer = Revealer(child=self.download_box, transition_type = "slide-right" if not data.VERTICAL else "slide-down", child_revealed=False)
         self.upload_revealer = Revealer(child=self.upload_box, transition_type="slide-left" if not data.VERTICAL else "slide-up",child_revealed=False)
 
+        # Create a container for WiFi icon and network name
+        self.network_container = Box(
+            orientation="h" if not data.VERTICAL else "v",
+            spacing=4,
+            children=[self.wifi_label, self.network_name_label]
+        )
+
         self.children = Box(
             orientation="h" if not data.VERTICAL else "v",
-            children=[self.upload_revealer, self.wifi_label, self.download_revealer],
+            children=[self.upload_revealer, self.network_container, self.download_revealer],
         )
 
         if data.VERTICAL:
@@ -612,10 +620,13 @@ class NetworkApplet(Button):
 
             if ethernet_state == "activated":
                 self.wifi_label.set_markup(icons.world)
+                self.network_name_label.set_markup("Ethernet")
             elif ethernet_state == "activating":
                 self.wifi_label.set_markup(icons.world)
+                self.network_name_label.set_markup("Connecting...")
             else:
                 self.wifi_label.set_markup(icons.world_off)
+                self.network_name_label.set_markup("Ethernet Disconnected")
 
             tooltip_base = "Ethernet Connection"
             tooltip_vertical = f"SSID: Ethernet\nUpload: {upload_str}\nDownload: {download_str}"
@@ -633,14 +644,18 @@ class NetworkApplet(Button):
                 else:
                     self.wifi_label.set_markup(icons.wifi_0)
 
+                # Set the network name to the actual SSID
+                self.network_name_label.set_markup(self.network_client.wifi_device.ssid)
                 tooltip_base = self.network_client.wifi_device.ssid
                 tooltip_vertical = f"SSID: {self.network_client.wifi_device.ssid}\nUpload: {upload_str}\nDownload: {download_str}"
             else:
                 self.wifi_label.set_markup(icons.world_off)
+                self.network_name_label.set_markup("Disconnected")
                 tooltip_base = "Disconnected"
                 tooltip_vertical = f"SSID: Disconnected\nUpload: {upload_str}\nDownload: {download_str}"
         else:
             self.wifi_label.set_markup(icons.world_off)
+            self.network_name_label.set_markup("WiFi Unavailable")
             tooltip_base = "Disconnected"
             tooltip_vertical = f"SSID: Disconnected\nUpload: {upload_str}\nDownload: {download_str}"
 

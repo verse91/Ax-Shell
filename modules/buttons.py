@@ -179,12 +179,15 @@ class NetworkButton(Box):
             self._stop_animation()
             if ethernet and ethernet.internet == "activated":
                 self.network_icon.set_markup(icons.world)
+                self.network_ssid.set_label("Ethernet")
             else:
                 self.network_icon.set_markup(icons.world_off)
+                self.network_ssid.set_label("Ethernet Disconnected")
         else:
             if not wifi:
                 self._stop_animation()
                 self.network_icon.set_markup(icons.wifi_off)
+                self.network_ssid.set_label("WiFi Unavailable")
             elif wifi.state == "activated" and wifi.ssid != "Disconnected" and wifi.strength > 0:
                 self._stop_animation()
                 strength = wifi.strength
@@ -197,6 +200,7 @@ class NetworkButton(Box):
                 else:
                     self.network_icon.set_markup(icons.wifi_3)
             else:
+                self.network_ssid.set_label("Searching...")
                 self._start_animation()
 
 class BluetoothButton(Box):
