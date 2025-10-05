@@ -1,7 +1,7 @@
 {
-	"version": "0.0.46", 
+	"version": "0.0.47", 
   "pkg_update": false,
 	"changelog": [
-    "<b>revert:</b> Network changes. I hope this will fix the extreme lag."
+    "<b>feat (beta):</b> Toggle bar hide/show (default CTRL SUPER + B)"
   ]
 }
