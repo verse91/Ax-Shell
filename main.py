@@ -13,7 +13,6 @@ from modules.bar import Bar
 from modules.corners import Corners
 from modules.dock import Dock
 from modules.notch import Notch
-from modules.notifications import NotificationPopup
 from modules.updater import run_updater
 
 fonts_updated_file = f"{CACHE_DIR}/fonts_updated"
@@ -118,10 +117,7 @@ if __name__ == "__main__":
         bar.notch = notch
         notch.bar = bar
         
-        # Create notification popup for the first monitor only
-        if monitor_id == 0:
-            notification = NotificationPopup(widgets=notch.dashboard.widgets)
-            app_components.append(notification)
+        # Notifications are now integrated into the notch/dashboard
         
         # Register instances in monitor manager if available
         if multi_monitor_enabled and monitor_manager:

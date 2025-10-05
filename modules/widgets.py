@@ -12,7 +12,7 @@ from modules.calendar import Calendar
 from modules.controls import ControlSliders
 from modules.metrics import Metrics
 from modules.network import NetworkConnections
-from modules.notifications import NotificationHistory
+from modules.notifications import NotificationHistory, NotificationContainer
 from modules.player import Player
 
 
@@ -68,6 +68,10 @@ class Widgets(Box):
         self.metrics = Metrics()
 
         self.notification_history = NotificationHistory()
+        self.notification_container = NotificationContainer(
+            notification_history_instance=self.notification_history,
+            revealer_transition_type="slide-down"
+        )
 
         self.network_connections = NetworkConnections(widgets=self)
 
@@ -77,6 +81,7 @@ class Widgets(Box):
             transition_type="slide-left-right",
             children=[
                 self.notification_history,
+                self.notification_container,
                 self.network_connections,
                 self.bluetooth,
             ],
@@ -160,7 +165,7 @@ class Widgets(Box):
         self.applet_stack.set_visible_child(self.bluetooth)
 
     def show_notif(self):
-        self.applet_stack.set_visible_child(self.notification_history)
+        self.applet_stack.set_visible_child(self.notification_container)
 
     def show_network_applet(self):
         self.notch.open_notch("network_applet")

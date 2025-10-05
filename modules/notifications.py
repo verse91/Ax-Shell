@@ -1182,7 +1182,7 @@ class NotificationContainer(Box):
             name="notification-main-revealer",
             transition_type=revealer_transition_type,
             transition_duration=250,
-            child_revealed=False,
+            child_revealed=True,  # Always show in notch context
             child=self.notification_box_container,
         )
 
