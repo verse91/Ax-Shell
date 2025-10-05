@@ -156,6 +156,7 @@ class Dock(Window):
         self._drag_in_progress = False
         self.is_mouse_over_dock_area = False
         self._prevent_occlusion = False
+        self._forced_occlusion = False
 
         self.view = Box(name="viewport", spacing=4)
         self.wrapper = Box(name="dock", children=[self.view], style_classes=["left"] if data.BAR_POSITION == "Right" else [])
@@ -341,7 +342,10 @@ class Dock(Window):
     def _on_hover_leave(self, *args):
         if self.integrated_mode: return 
         self.is_mouse_over_dock_area = False
-        self.delay_hide()
+        if self._forced_occlusion:
+            self.dock_revealer.set_reveal_child(False)
+        else:
+            self.delay_hide()
 
     def _on_dock_enter(self, widget, event):
         if self.integrated_mode: return True 
@@ -360,7 +364,11 @@ class Dock(Window):
             return False
 
         self.is_mouse_over_dock_area = False
-        self.delay_hide()
+        
+        if self._forced_occlusion:
+            self.dock_revealer.set_reveal_child(False)
+        else:
+            self.delay_hide()
         
         if not self.always_show:
             self.dock_full.add_style_class("occluded")
@@ -632,7 +640,7 @@ class Dock(Window):
         if self.integrated_mode:
             return False
 
-        if self.is_mouse_over_dock_area or self._drag_in_progress or self._prevent_occlusion:
+        if self.is_mouse_over_dock_area or self._drag_in_progress or self._prevent_occlusion or self._forced_occlusion:
             if not self.dock_revealer.get_reveal_child():
                 self.dock_revealer.set_reveal_child(True)
             if not self.always_show:
@@ -811,3 +819,18 @@ class Dock(Window):
             else:
                 if hasattr(dock, 'dock_revealer') and dock.dock_revealer.get_reveal_child():
                     dock.dock_revealer.set_reveal_child(False)
+    
+    def force_occlusion(self):
+        """Force dock to occlusion mode (hidden but responds to hover)."""
+        if self.integrated_mode:
+            return
+        self._forced_occlusion = True
+        if not self.is_mouse_over_dock_area:
+            self.dock_revealer.set_reveal_child(False)
+    
+    def restore_from_occlusion(self):
+        """Restore dock from forced occlusion mode."""
+        if self.integrated_mode:
+            return
+        self._forced_occlusion = False
+        self.check_occlusion_state()

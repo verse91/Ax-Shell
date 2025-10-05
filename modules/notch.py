@@ -453,9 +453,9 @@ class Notch(Window):
     def on_notch_hover_area_enter(self, widget, event):
         """Handle hover enter for the entire notch area"""
         self.is_hovered = True
-        if self._forced_occlusion:
-            return False
         if data.PANEL_THEME == "Notch" and data.BAR_POSITION != "Top":
+            self.notch_revealer.set_reveal_child(True)
+        elif self._forced_occlusion:
             self.notch_revealer.set_reveal_child(True)
         return False
 
@@ -466,6 +466,9 @@ class Notch(Window):
             return False
 
         self.is_hovered = False
+        
+        if self._forced_occlusion:
+            self.notch_revealer.set_reveal_child(False)
 
         return False
 
@@ -876,7 +879,7 @@ class Notch(Window):
         occlusion_edge = "top"
         occlusion_size = 40
 
-        if not (self.is_hovered or self._is_notch_open or self._prevent_occlusion):
+        if not (self.is_hovered or self._is_notch_open or self._prevent_occlusion or self._forced_occlusion):
             is_occluded = check_occlusion((occlusion_edge, occlusion_size))
             self.notch_revealer.set_reveal_child(not is_occluded)
 

@@ -180,7 +180,7 @@ class GlobalKeybindHandler:
     
     def toggle_bar(self) -> bool:
         """
-        Toggle bar visibility and force notch to occlusion mode.
+        Toggle bar visibility and force notch/dock to occlusion mode.
         
         Returns:
             True if successful, False otherwise
@@ -199,9 +199,27 @@ class GlobalKeybindHandler:
                 bar.set_visible(not current_visibility)
                 
                 if not current_visibility:
+                    # Bar is being shown - restore from occlusion
                     notch.restore_from_occlusion()
+                    # Also restore docks on all monitors
+                    try:
+                        from modules.dock import Dock
+                        for dock_instance in Dock._instances:
+                            if hasattr(dock_instance, 'restore_from_occlusion'):
+                                dock_instance.restore_from_occlusion()
+                    except ImportError:
+                        pass
                 else:
+                    # Bar is being hidden - force occlusion
                     notch.force_occlusion()
+                    # Also force occlusion on docks on all monitors
+                    try:
+                        from modules.dock import Dock
+                        for dock_instance in Dock._instances:
+                            if hasattr(dock_instance, 'force_occlusion'):
+                                dock_instance.force_occlusion()
+                    except ImportError:
+                        pass
                 
                 return True
             except Exception as e:
