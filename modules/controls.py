@@ -11,6 +11,8 @@ from gi.repository import Gdk, GLib
 import config.data as data
 import modules.icons as icons
 from services.brightness import Brightness
+import threading
+import time
 
 
 class VolumeSlider(Scale):
@@ -284,12 +286,20 @@ class VolumeSmall(Box):
             events=["scroll", "smooth-scroll"],
             child=Overlay(child=self.progress_bar, overlays=self.vol_button),
         )
+        
+        # Headphone detection
+        self._last_device_state = None
+        self._headphone_thread = None
+        self._headphone_running = False
+        
         self.audio.connect("notify::speaker", self.on_new_speaker)
         if self.audio.speaker:
             self.audio.speaker.connect("changed", self.on_speaker_changed)
         self.event_box.connect("scroll-event", self.on_scroll)
         self.add(self.event_box)
-        self.on_speaker_changed()
+        
+        # Start headphone detection thread
+        self._start_headphone_detection()
         self.add_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK)
 
     def on_new_speaker(self, *args):
@@ -319,39 +329,91 @@ class VolumeSmall(Box):
             if abs(event.delta_x) > 0:
                 self.audio.speaker.volume += event.delta_x
 
-    def on_speaker_changed(self, *_):
-        if not self.audio.speaker:
+    def _start_headphone_detection(self):
+        """Start the headphone detection thread"""
+        if self._headphone_thread and self._headphone_thread.is_alive():
             return
+            
+        self._headphone_running = True
+        self._headphone_thread = threading.Thread(target=self._headphone_detection_loop, daemon=True)
+        self._headphone_thread.start()
+    
+    def _headphone_detection_loop(self):
+        """Main headphone detection loop running in background thread"""
+        while self._headphone_running:
+            try:
+                self._check_headphone_state()
+                time.sleep(0.5)  # Check every 500ms
+            except Exception as e:
+                print(f"Headphone detection error: {e}")
+                time.sleep(1)
+    
+    def _check_headphone_state(self):
+        """Check if headphones are connected and update icon accordingly"""
+        if not self.audio.speaker:
+            current_state = "no_device"
+        else:
+            try:
+                device_type = self.audio.speaker.port.type
+                if device_type == 'headphones':
+                    current_state = "headphones"
+                else:
+                    current_state = "speaker"
+            except AttributeError:
+                # Fallback: check if device name contains "headphone" or similar
+                device_name = getattr(self.audio.speaker, 'name', '').lower()
+                if any(keyword in device_name for keyword in ['headphone', 'headset', 'earphone', 'earbud']):
+                    current_state = "headphones"
+                else:
+                    current_state = "speaker"
         
-        vol_high_icon = icons.vol_high
-        vol_medium_icon = icons.vol_medium
-        vol_mute_icon = icons.vol_off
-        vol_off_icon = icons.vol_mute
-
-        if "bluetooth" in self.audio.speaker.icon_name:
-            vol_high_icon = icons.bluetooth_connected
-            vol_medium_icon = icons.bluetooth
-            vol_mute_icon = icons.bluetooth_off
-            vol_off_icon = icons.bluetooth_disconnected
-
-        self.progress_bar.value = self.audio.speaker.volume / 100
-        
+        # Only update if state changed
+        if current_state != self._last_device_state:
+            self._last_device_state = current_state
+            GLib.idle_add(self._update_volume_icon, current_state)
+    
+    def _update_volume_icon(self, device_state):
+        """Update volume icon based on device state"""
+        if not self.audio.speaker:
+            self.vol_label.set_markup("")
+            self.set_tooltip_text("No audio device")
+            return False
+            
         if self.audio.speaker.muted:
-            self.vol_button.get_child().set_markup(vol_mute_icon)
+            # When muted, always show muted icon regardless of device type
+            self.vol_label.set_markup(icons.vol_mute)
             self.progress_bar.add_style_class("muted")
             self.vol_label.add_style_class("muted")
             self.set_tooltip_text("Muted")
-            return
         else:
+            # When not muted, show appropriate icon based on device type
             self.progress_bar.remove_style_class("muted")
             self.vol_label.remove_style_class("muted")
-        self.set_tooltip_text(f"{round(self.audio.speaker.volume)}%")
-        if self.audio.speaker.volume > 74:
-            self.vol_button.get_child().set_markup(vol_high_icon)
-        elif self.audio.speaker.volume > 0:
-            self.vol_button.get_child().set_markup(vol_medium_icon)
-        else:
-            self.vol_button.get_child().set_markup(vol_off_icon)
+            
+            if device_state == "headphones":
+                self.vol_label.set_markup(icons.headphones)
+            else:
+                # Show volume level icon for speakers
+                volume = self.audio.speaker.volume
+                if volume > 74:
+                    self.vol_label.set_markup(icons.vol_high)
+                elif volume > 0:
+                    self.vol_label.set_markup(icons.vol_medium)
+                else:
+                    self.vol_label.set_markup(icons.vol_off)
+            
+            self.set_tooltip_text(f"{round(self.audio.speaker.volume)}%")
+        
+        # Update progress bar
+        self.progress_bar.value = self.audio.speaker.volume / 100
+        return False
+
+    def on_speaker_changed(self, *_):
+        if not self.audio.speaker:
+            return
+
+        # Trigger immediate update
+        self._check_headphone_state()
 
 class MicSmall(Box):
     def __init__(self, **kwargs):
@@ -530,13 +592,18 @@ class VolumeIcon(Box):
 
         self._pending_value = None
         self._update_source_id = None
-        self._periodic_update_source_id = None
+        
+        # Headphone detection
+        self._last_device_state = None
+        self._headphone_thread = None
+        self._headphone_running = False
 
         self.audio.connect("notify::speaker", self.on_new_speaker)
         if self.audio.speaker:
             self.audio.speaker.connect("changed", self.on_speaker_changed)
 
-        self._periodic_update_source_id = GLib.timeout_add_seconds(2, self.update_device_icon)
+        # Start headphone detection thread
+        self._start_headphone_detection()
         self.add_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK)
 
     def on_scroll(self, _, event):
@@ -586,9 +653,92 @@ class VolumeIcon(Box):
 
             self.on_speaker_changed()
 
+    def _start_headphone_detection(self):
+        """Start the headphone detection thread"""
+        if self._headphone_thread and self._headphone_thread.is_alive():
+            return
+            
+        self._headphone_running = True
+        self._headphone_thread = threading.Thread(target=self._headphone_detection_loop, daemon=True)
+        self._headphone_thread.start()
+    
+    def _headphone_detection_loop(self):
+        """Main headphone detection loop running in background thread"""
+        while self._headphone_running:
+            try:
+                self._check_headphone_state()
+                time.sleep(1)  # Check every 1 second
+            except Exception as e:
+                print(f"Headphone detection error: {e}")
+                time.sleep(2)
+    
+    def _check_headphone_state(self):
+        """Check if headphones are connected using PulseAudio"""
+        current_state = self._detect_headphone_state()
+        
+        # Only update if state changed
+        if current_state != self._last_device_state:
+            self._last_device_state = current_state
+            GLib.idle_add(self._update_volume_icon, current_state)
+    
+    def _detect_headphone_state(self):
+        """Detect headphone state using PulseAudio directly"""
+        try:
+            import subprocess
+            result = subprocess.run(['pactl', 'list', 'sinks'], capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                output = result.stdout
+                # Look for "Active Port:" line
+                for line in output.split('\n'):
+                    if 'Active Port:' in line:
+                        active_port = line.split('Active Port:')[1].strip()
+                        if 'headphone' in active_port.lower():
+                            return "headphones"
+                        else:
+                            return "speaker"
+        except Exception as e:
+            print(f"PulseAudio detection error: {e}")
+        
+        # Default to speaker if detection fails
+        return "speaker"
+    
+    def _update_volume_icon(self, device_state):
+        """Update volume icon based on device state"""
+        if self.audio.speaker and self.audio.speaker.muted:
+            # When muted, always show muted icon
+            self.vol_label.set_markup(icons.vol_mute)
+            self.add_style_class("muted")
+            self.vol_label.add_style_class("muted")
+            self.vol_button.add_style_class("muted")
+            self.set_tooltip_text("Muted")
+        else:
+            # When not muted, show appropriate icon based on device type
+            self.remove_style_class("muted")
+            self.vol_label.remove_style_class("muted")
+            self.vol_button.remove_style_class("muted")
+            
+            if device_state == "headphones":
+                self.vol_label.set_markup(icons.headphones)
+                self.set_tooltip_text("Headphones")
+            else:
+                # Show volume level icon for speakers
+                if self.audio.speaker:
+                    volume = self.audio.speaker.volume
+                    if volume > 74:
+                        self.vol_label.set_markup(icons.vol_high)
+                    elif volume > 0:
+                        self.vol_label.set_markup(icons.vol_medium)
+                    else:
+                        self.vol_label.set_markup(icons.vol_off)
+                    self.set_tooltip_text(f"{round(volume)}%")
+                else:
+                    self.vol_label.set_markup(icons.vol_high)
+                    self.set_tooltip_text("Speaker")
+        
+        return False
+
     def on_speaker_changed(self, *_):
         if not self.audio.speaker:
-
             self.vol_label.set_markup("")
             self.remove_style_class("muted")
             self.vol_label.remove_style_class("muted")
@@ -596,49 +746,19 @@ class VolumeIcon(Box):
             self.set_tooltip_text("No audio device")
             return
 
-        if self.audio.speaker.muted:
-            self.vol_label.set_markup(icons.headphones)
-            self.add_style_class("muted")
-            self.vol_label.add_style_class("muted")
-            self.vol_button.add_style_class("muted")
-            self.set_tooltip_text("Muted")
-        else:
-            self.remove_style_class("muted")
-            self.vol_label.remove_style_class("muted")
-            self.vol_button.remove_style_class("muted")
-
-            self.update_device_icon()
-            self.set_tooltip_text(f"{round(self.audio.speaker.volume)}%")
+        # Trigger immediate update
+        self._check_headphone_state()
 
     def update_device_icon(self):
-
-        if not self.audio.speaker:
-
-            self.vol_label.set_markup("")
-
-            return True
-
-        if self.audio.speaker.muted:
-             return True
-
-        try:
-
-            device_type = self.audio.speaker.port.type
-            if device_type == 'headphones':
-                self.vol_label.set_markup(icons.headphones)
-            elif device_type == 'speaker':
-                self.vol_label.set_markup(icons.headphones)
-            else:
-
-                 self.vol_label.set_markup(icons.headphones)
-
-        except AttributeError:
-
-            self.vol_label.set_markup(icons.headphones)
-
+        """Legacy method - now handled by headphone detection thread"""
         return True
 
     def destroy(self):
+        # Stop headphone detection thread
+        self._headphone_running = False
+        if self._headphone_thread and self._headphone_thread.is_alive():
+            self._headphone_thread.join(timeout=1)
+            
         if self._update_source_id is not None:
             GLib.source_remove(self._update_source_id)
 
