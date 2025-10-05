@@ -275,6 +275,7 @@ class Bar(Window):
         )
 
         self.rev_left = [
+            self.date_time,
             self.weather,
             self.sysprofiles,
             self.network,
@@ -312,12 +313,12 @@ class Bar(Window):
             self.systray,
             self.button_tools,
             self.language,
-            self.date_time,
             self.button_power,
         ]
 
         self.v_start_children = [
             self.button_apps,
+            self.date_time,
             self.systray,
             self.control,
             self.sysprofiles,
@@ -335,7 +336,6 @@ class Bar(Window):
             self.battery,
             self.metrics,
             self.language,
-            self.date_time,
             self.button_power,
         ]
 

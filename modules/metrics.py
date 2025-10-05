@@ -23,6 +23,21 @@ from services.network import NetworkClient
 
 logger = logging.getLogger(__name__)
 
+def format_bytes(bytes_value):
+    """Convert bytes to human readable format"""
+    if bytes_value < 1024:
+        return f"{bytes_value} B"
+    elif bytes_value < 1024 * 1024:
+        return f"{bytes_value / 1024:.1f} KB"
+    elif bytes_value < 1024 * 1024 * 1024:
+        return f"{bytes_value / (1024 * 1024):.1f} MB"
+    else:
+        return f"{bytes_value / (1024 * 1024 * 1024):.1f} GB"
+
+def format_cpu_usage(cpu_percent):
+    """Format CPU usage as percentage"""
+    return f"{cpu_percent:.1f}%"
+
 class MetricsProvider:
     """
     Class responsible for obtaining centralized CPU, memory, disk usage, and battery metrics.
@@ -33,6 +48,13 @@ class MetricsProvider:
         self.cpu = 0.0
         self.mem = 0.0
         self.disk = []
+        
+        # Store actual usage values
+        self.cpu_usage = 0.0
+        self.mem_usage = 0.0
+        self.mem_total = 0.0
+        self.disk_usage = []
+        self.disk_total = []
 
         self.upower = UPowerManager()
         self.display_device = self.upower.get_display_device()
@@ -47,8 +69,23 @@ class MetricsProvider:
 
     def _update(self):
         self.cpu = psutil.cpu_percent(interval=0)
-        self.mem = psutil.virtual_memory().percent
-        self.disk = [psutil.disk_usage(path).percent for path in data.BAR_METRICS_DISKS]
+        self.cpu_usage = self.cpu  # CPU usage is already a percentage
+        
+        # Memory usage
+        mem_info = psutil.virtual_memory()
+        self.mem = mem_info.percent
+        self.mem_usage = mem_info.used
+        self.mem_total = mem_info.total
+        
+        # Disk usage
+        self.disk = []
+        self.disk_usage = []
+        self.disk_total = []
+        for path in data.BAR_METRICS_DISKS:
+            disk_info = psutil.disk_usage(path)
+            self.disk.append(disk_info.percent)
+            self.disk_usage.append(disk_info.used)
+            self.disk_total.append(disk_info.total)
 
         self._gpu_update_counter += 1
         if self._gpu_update_counter >= 5:  # Update GPU every 10 seconds (5 * 2s)
@@ -131,6 +168,9 @@ class MetricsProvider:
 
     def get_metrics(self):
         return (self.cpu, self.mem, self.disk, self.gpu)
+    
+    def get_metrics_usage(self):
+        return (self.cpu_usage, self.mem_usage, self.mem_total, self.disk_usage, self.disk_total, self.gpu)
 
     def get_battery(self):
         return (self.bat_percent, self.bat_charging, self.bat_time)
@@ -369,23 +409,22 @@ class MetricsSmall(Button):
 
     def update_metrics(self):
         cpu, mem, disks, gpus = shared_provider.get_metrics()
+        cpu_usage, mem_usage, mem_total, disk_usage, disk_total, gpus_usage = shared_provider.get_metrics_usage()
 
         if self.cpu:
             self.cpu.circle.set_value(cpu / 100.0)
-            self.cpu.level.set_label(self._format_percentage(int(cpu)))
+            self.cpu.level.set_label(format_cpu_usage(cpu))
         if self.ram:
             self.ram.circle.set_value(mem / 100.0)
-            self.ram.level.set_label(self._format_percentage(int(mem)))
+            self.ram.level.set_label(format_bytes(mem_usage))
         for i, disk in enumerate(self.disk):
-
             if i < len(disks):
                 disk.circle.set_value(disks[i] / 100.0)
-                disk.level.set_label(self._format_percentage(int(disks[i])))
+                disk.level.set_label(format_bytes(disk_usage[i]))
         for i, gpu in enumerate(self.gpu):
-
             if i < len(gpus):
                 gpu.circle.set_value(gpus[i] / 100.0)
-                gpu.level.set_label(self._format_percentage(int(gpus[i])))
+                gpu.level.set_label(format_cpu_usage(gpus[i]))
 
         tooltip_metrics = []
         if self.disk: tooltip_metrics.extend(self.disk)
