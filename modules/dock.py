@@ -640,7 +640,19 @@ class Dock(Window):
         if self.integrated_mode:
             return False
 
-        if self.is_mouse_over_dock_area or self._drag_in_progress or self._prevent_occlusion or self._forced_occlusion:
+        # When forced occlusion is active, only show on hover
+        if self._forced_occlusion:
+            if self.is_mouse_over_dock_area:
+                if not self.dock_revealer.get_reveal_child():
+                    self.dock_revealer.set_reveal_child(True)
+                self.dock_full.remove_style_class("occluded")
+            else:
+                if self.dock_revealer.get_reveal_child():
+                    self.dock_revealer.set_reveal_child(False)
+                self.dock_full.add_style_class("occluded")
+            return True
+
+        if self.is_mouse_over_dock_area or self._drag_in_progress or self._prevent_occlusion:
             if not self.dock_revealer.get_reveal_child():
                 self.dock_revealer.set_reveal_child(True)
             if not self.always_show:
@@ -821,16 +833,24 @@ class Dock(Window):
                     dock.dock_revealer.set_reveal_child(False)
     
     def force_occlusion(self):
-        """Force dock to occlusion mode (hidden but responds to hover)."""
+        """Force dock to hide and act as if always_show is False."""
         if self.integrated_mode:
             return
+        # Save current always_show state
+        self._saved_always_show = self.always_show
+        # Set to False to enable hover behavior
+        self.always_show = False
         self._forced_occlusion = True
         if not self.is_mouse_over_dock_area:
             self.dock_revealer.set_reveal_child(False)
     
     def restore_from_occlusion(self):
-        """Restore dock from forced occlusion mode."""
+        """Restore dock to its previous always_show state."""
         if self.integrated_mode:
             return
         self._forced_occlusion = False
+        # Restore saved always_show state
+        if hasattr(self, '_saved_always_show'):
+            self.always_show = self._saved_always_show
+            delattr(self, '_saved_always_show')
         self.check_occlusion_state()

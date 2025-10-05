@@ -455,8 +455,6 @@ class Notch(Window):
         self.is_hovered = True
         if data.PANEL_THEME == "Notch" and data.BAR_POSITION != "Top":
             self.notch_revealer.set_reveal_child(True)
-        elif self._forced_occlusion:
-            self.notch_revealer.set_reveal_child(True)
         return False
 
     def on_notch_hover_area_leave(self, widget, event):
@@ -466,9 +464,6 @@ class Notch(Window):
             return False
 
         self.is_hovered = False
-        
-        if self._forced_occlusion:
-            self.notch_revealer.set_reveal_child(False)
 
         return False
 
@@ -879,7 +874,10 @@ class Notch(Window):
         occlusion_edge = "top"
         occlusion_size = 40
 
-        if not (self.is_hovered or self._is_notch_open or self._prevent_occlusion or self._forced_occlusion):
+        if self._forced_occlusion:
+            # When forced occlusion is active, show only on hover
+            self.notch_revealer.set_reveal_child(self.is_hovered)
+        elif not (self.is_hovered or self._is_notch_open or self._prevent_occlusion):
             is_occluded = check_occlusion((occlusion_edge, occlusion_size))
             self.notch_revealer.set_reveal_child(not is_occluded)
 
@@ -890,6 +888,9 @@ class Notch(Window):
         self._forced_occlusion = True
         self._prevent_occlusion = False
         self.notch_revealer.set_reveal_child(False)
+        # Start occlusion check timer if in vertical mode (left/right)
+        if data.BAR_POSITION in ["Left", "Right"]:
+            GLib.timeout_add(100, self._check_occlusion)
     
     def restore_from_occlusion(self):
         """Restore notch from occlusion mode."""
