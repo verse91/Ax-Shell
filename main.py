@@ -118,6 +118,10 @@ if __name__ == "__main__":
         bar.notch = notch
         notch.bar = bar
         
+        # Set up WiFi sync between notch and bar
+        if hasattr(bar.network, 'set_notch_reference'):
+            bar.network.set_notch_reference(notch)
+        
         # Create notification popup for the first monitor only
         if monitor_id == 0:
             notification = NotificationPopup(widgets=notch.dashboard.widgets)

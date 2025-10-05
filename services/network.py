@@ -3,7 +3,7 @@ from typing import Any, List, Literal
 import gi
 from fabric.core.service import Property, Service, Signal
 from fabric.utils import bulk_connect, exec_shell_command_async
-from gi.repository import Gio
+from gi.repository import Gio, GLib
 from loguru import logger
 
 try:
@@ -64,6 +64,8 @@ class Wifi(Service):
             self._ap.disconnect(self._ap_signal)
         self._ap = self._device.get_active_access_point()
         if not self._ap:
+            # If no active access point, still trigger an update to show disconnected state
+            self.ap_update()
             return
 
         self._ap_signal = self._ap.connect(
@@ -280,21 +282,47 @@ class NetworkClient(Service):
         if wifi_device:
             self.wifi_device = Wifi(self._client, wifi_device)
             self.emit("device-ready")
+            
+            # If device doesn't have active connection yet, set up a delayed check
+            if not wifi_device.get_active_connection():
+                GLib.timeout_add(1000, self._check_delayed_connection, wifi_device)
 
         if ethernet_device:
             self.ethernet_device = Ethernet(client=self._client, device=ethernet_device)
             self.emit("device-ready")
 
         self.notify("primary-device")
+    
+    def _check_delayed_connection(self, device):
+        """Check if device has gained an active connection after startup"""
+        if device.get_active_connection() and self.wifi_device:
+            # Connection is now available, trigger update
+            self.wifi_device.ap_update()
+        return False  # Don't repeat the check
 
     def _get_device(self, device_type) -> Any:
         devices: List[NM.Device] = self._client.get_devices()  # type: ignore
-        return next(
+        # First try to find a device with an active connection
+        device_with_connection = next(
             (
                 x
                 for x in devices
                 if x.get_device_type() == device_type
                 and x.get_active_connection() is not None
+            ),
+            None,
+        )
+        
+        # If no device with active connection found, try to find any device of the type
+        # This handles the case where NetworkManager hasn't fully initialized on startup
+        if device_with_connection:
+            return device_with_connection
+            
+        return next(
+            (
+                x
+                for x in devices
+                if x.get_device_type() == device_type
             ),
             None,
         )

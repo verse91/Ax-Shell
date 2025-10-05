@@ -2,6 +2,7 @@ import json
 import logging
 import subprocess
 import time
+import threading
 
 import psutil
 from fabric.core.fabricator import Fabricator
@@ -544,6 +545,12 @@ class NetworkApplet(Button):
         self.upload_label = Label(name="upload-label", markup="Upload: 0 B/s")
         self.wifi_label = Label(name="network-icon-label", markup="WiFi: Unknown")
         self.network_name_label = Label(name="network-name-label", markup="Unknown")
+        
+        # Reference to notch for WiFi sync
+        self.notch = None
+        self._last_wifi_state = None
+        self._sync_thread = None
+        self._sync_running = False
 
         self.is_mouse_over = False
         self.downloading = False
@@ -587,6 +594,89 @@ class NetworkApplet(Button):
 
         self.connect("enter-notify-event", self.on_mouse_enter)
         self.connect("leave-notify-event", self.on_mouse_leave)
+        self.connect("destroy", self._cleanup)
+    
+    def _cleanup(self, widget):
+        """Cleanup sync thread when widget is destroyed"""
+        self._sync_running = False
+        if self._sync_thread and self._sync_thread.is_alive():
+            self._sync_thread.join(timeout=1)
+    
+    def set_notch_reference(self, notch):
+        """Set reference to notch for WiFi sync"""
+        self.notch = notch
+        if self.notch and hasattr(self.notch, 'nwconnections'):
+            # Start the sync thread
+            self._start_sync_thread()
+    
+    def _start_sync_thread(self):
+        """Start the WiFi sync thread"""
+        if self._sync_thread and self._sync_thread.is_alive():
+            return
+            
+        self._sync_running = True
+        self._sync_thread = threading.Thread(target=self._sync_loop, daemon=True)
+        self._sync_thread.start()
+    
+    def _sync_loop(self):
+        """Main sync loop running in background thread"""
+        while self._sync_running:
+            try:
+                self._check_and_sync_wifi()
+                time.sleep(0.5)  # Check every 500ms
+            except Exception as e:
+                print(f"WiFi sync error: {e}")
+                time.sleep(1)
+    
+    def _check_and_sync_wifi(self):
+        """Check WiFi state and sync if changed"""
+        if not self.notch or not hasattr(self.notch, 'nwconnections'):
+            return
+            
+        notch_network = self.notch.nwconnections.network_client
+        if not notch_network or not notch_network.wifi_device:
+            current_state = "unavailable"
+        else:
+            wifi_device = notch_network.wifi_device
+            ssid = wifi_device.ssid
+            if ssid == "Disconnected" or not ssid:
+                current_state = "disconnected"
+            else:
+                current_state = f"connected:{ssid}"
+        
+        # Only update if state changed
+        if current_state != self._last_wifi_state:
+            self._last_wifi_state = current_state
+            GLib.idle_add(self._update_wifi_display, current_state)
+    
+    def _update_wifi_display(self, state):
+        """Update WiFi display on main thread"""
+        if state == "unavailable":
+            self.wifi_label.set_markup(icons.wifi_off)
+            self.network_name_label.set_markup("WiFi Unavailable")
+        elif state == "disconnected":
+            self.wifi_label.set_markup(icons.wifi_off)
+            self.network_name_label.set_markup("Disconnected")
+        elif state.startswith("connected:"):
+            ssid = state.split(":", 1)[1]
+            # Get strength from notch's network client
+            if (self.notch and hasattr(self.notch, 'nwconnections') and 
+                self.notch.nwconnections.network_client and 
+                self.notch.nwconnections.network_client.wifi_device):
+                strength = self.notch.nwconnections.network_client.wifi_device.strength
+                if strength >= 75:
+                    self.wifi_label.set_markup(icons.wifi_3)
+                elif strength >= 50:
+                    self.wifi_label.set_markup(icons.wifi_2)
+                elif strength >= 25:
+                    self.wifi_label.set_markup(icons.wifi_1)
+                else:
+                    self.wifi_label.set_markup(icons.wifi_0)
+            else:
+                self.wifi_label.set_markup(icons.wifi_3)  # Default to strong signal
+            
+            self.network_name_label.set_markup(ssid)
+        return False
 
     def update_network(self):
         current_time = time.time()
@@ -638,33 +728,16 @@ class NetworkApplet(Button):
             tooltip_base = "Ethernet Connection"
             tooltip_vertical = f"SSID: Ethernet\nUpload: {upload_str}\nDownload: {download_str}"
 
-        elif self.network_client and self.network_client.wifi_device:
-            if self.network_client.wifi_device.ssid != "Disconnected":
-                strength = self.network_client.wifi_device.strength
-
-                if strength >= 75:
-                    self.wifi_label.set_markup(icons.wifi_3)
-                elif strength >= 50:
-                    self.wifi_label.set_markup(icons.wifi_2)
-                elif strength >= 25:
-                    self.wifi_label.set_markup(icons.wifi_1)
-                else:
-                    self.wifi_label.set_markup(icons.wifi_0)
-
-                # Set the network name to the actual SSID
-                self.network_name_label.set_markup(self.network_client.wifi_device.ssid)
-                tooltip_base = self.network_client.wifi_device.ssid
-                tooltip_vertical = f"SSID: {self.network_client.wifi_device.ssid}\nUpload: {upload_str}\nDownload: {download_str}"
+        else:
+            # WiFi display is now handled by the sync thread
+            # Just set tooltip based on current display
+            current_ssid = self.network_name_label.get_text()
+            if current_ssid and current_ssid not in ["WiFi Unavailable", "Disconnected", "Unknown"]:
+                tooltip_base = current_ssid
+                tooltip_vertical = f"SSID: {current_ssid}\nUpload: {upload_str}\nDownload: {download_str}"
             else:
-                self.wifi_label.set_markup(icons.world_off)
-                self.network_name_label.set_markup("Disconnected")
                 tooltip_base = "Disconnected"
                 tooltip_vertical = f"SSID: Disconnected\nUpload: {upload_str}\nDownload: {download_str}"
-        else:
-            self.wifi_label.set_markup(icons.world_off)
-            self.network_name_label.set_markup("WiFi Unavailable")
-            tooltip_base = "Disconnected"
-            tooltip_vertical = f"SSID: Disconnected\nUpload: {upload_str}\nDownload: {download_str}"
 
         if data.VERTICAL:
             self.set_tooltip_text(tooltip_vertical)
