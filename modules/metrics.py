@@ -549,8 +549,8 @@ class Battery(Button):
             time_status = f"{int(time / 60 / 60)}h"
 
         if charging == True:
-            # Always show lightning icon when charging (regardless of percentage)
-            self.bat_icon.set_markup(icons.charging)
+            # Show battery icon when charging
+            self.bat_icon.set_markup(icons.battery)
             if percentage == 100:
                 charging_status = f"{icons.bat_full} Fully Charged"
             else:
@@ -560,8 +560,8 @@ class Battery(Button):
             self.bat_icon.set_markup(icons.alert)
             charging_status = f"{icons.bat_low} Low Battery - {time_status} left"
         else:
-            # Show battery icon when not charging
-            self.bat_icon.set_markup(icons.battery)
+            # Show downward lightning icon when not charging
+            self.bat_icon.set_markup(icons.discharging)
             if percentage == 100:
                 charging_status = f"{icons.bat_full} Fully Charged - {time_status} left"
             else:
