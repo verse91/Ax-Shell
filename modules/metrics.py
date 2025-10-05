@@ -547,24 +547,24 @@ class Battery(Button):
         else:
             time_status = f"{int(time / 60 / 60)}h"
 
-        if percentage == 100 and charging == False:
-            self.bat_icon.set_markup(icons.battery)
-            charging_status = f"{icons.bat_full} Fully Charged - {time_status} left"
-        elif percentage == 100 and charging == True:
-            self.bat_icon.set_markup(icons.battery)
-            charging_status = f"{icons.bat_full} Fully Charged"
-        elif charging == True:
+        if charging == True:
+            # Always show lightning icon when charging (regardless of percentage)
             self.bat_icon.set_markup(icons.charging)
-            charging_status = f"{icons.bat_charging} Charging - {time_status} left"
+            if percentage == 100:
+                charging_status = f"{icons.bat_full} Fully Charged"
+            else:
+                charging_status = f"{icons.bat_charging} Charging - {time_status} left"
         elif percentage <= 15 and charging == False:
+            # Low battery warning when not charging
             self.bat_icon.set_markup(icons.alert)
             charging_status = f"{icons.bat_low} Low Battery - {time_status} left"
-        elif charging == False:
-            self.bat_icon.set_markup(icons.discharging)
-            charging_status = f"{icons.bat_discharging} Discharging - {time_status} left"
         else:
+            # Show battery icon when not charging
             self.bat_icon.set_markup(icons.battery)
-            charging_status = "Battery"
+            if percentage == 100:
+                charging_status = f"{icons.bat_full} Fully Charged - {time_status} left"
+            else:
+                charging_status = f"{icons.bat_discharging} Discharging - {time_status} left"
 
         self.set_tooltip_markup(f"{charging_status}" if not data.VERTICAL else f"{charging_status}: {percentage}%")
 
