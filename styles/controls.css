@@ -76,6 +76,19 @@
   font-size: 16px;
 }
 
+
+#vol-percentage,
+#brightness-percentage {
+  font-weight: bold;
+  margin: 0 4px;
+}
+
+#vol-percentage-revealer,
+#brightness-percentage-revealer {
+  transition-duration: 250ms;
+  transition-timing-function: ease-out;
+}
+
 #vol-label.muted,
 #mic-label.muted {
   color: var(--outline);

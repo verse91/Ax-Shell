@@ -48,10 +48,8 @@
 
 #network-name-label {
   color: var(--foreground);
-  font-size: 12px;
   font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 8px;
+  margin: 0 2px;
   transition: all 0.1s ease;
 }
 

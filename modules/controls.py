@@ -5,6 +5,7 @@ from fabric.widgets.circularprogressbar import CircularProgressBar
 from fabric.widgets.eventbox import EventBox
 from fabric.widgets.label import Label
 from fabric.widgets.overlay import Overlay
+from fabric.widgets.revealer import Revealer
 from fabric.widgets.scale import Scale
 from gi.repository import Gdk, GLib
 
@@ -199,16 +200,59 @@ class BrightnessSmall(Box):
         )
         self.brightness_label = Label(name="brightness-label", markup=icons.brightness_high)
         self.brightness_button = Button(child=self.brightness_label)
+        
+        # Percentage label like system metrics
+        self.percentage_label = Label(
+            name="brightness-percentage", 
+            label="0%"
+        )
+        
+        # Revealer like system metrics
+        self.percentage_revealer = Revealer(
+            name="brightness-percentage-revealer",
+            transition_duration=250,
+            transition_type="slide-left",
+            child=self.percentage_label,
+            child_revealed=False,
+        )
+        
+        # Keep original structure - icon stays inside circle
         self.event_box = EventBox(
-            events=["scroll", "smooth-scroll"],
+            events=["enter-notify", "leave-notify"],
             child=Overlay(
                 child=self.progress_bar,
-                overlays=self.brightness_button
+                overlays=[self.brightness_button]
             ),
         )
-        self.event_box.connect("scroll-event", self.on_scroll)
-        self.add(self.event_box)
+        
+        # Create container for the expanding area - this handles scroll events
+        self.expanding_container = EventBox(
+            name="brightness-expanding-container",
+            events=["scroll", "smooth-scroll", "enter-notify", "leave-notify"],
+            child=Box(
+                name="brightness-main-box",
+                orientation="h",
+                spacing=0,
+                children=[self.event_box, self.percentage_revealer]
+            )
+        )
+        
+        # Ensure the expanding container can receive scroll events and hover events
+        self.expanding_container.set_events(
+            Gdk.EventMask.SCROLL_MASK | 
+            Gdk.EventMask.SMOOTH_SCROLL_MASK |
+            Gdk.EventMask.ENTER_NOTIFY_MASK |
+            Gdk.EventMask.LEAVE_NOTIFY_MASK
+        )
+        self.expanding_container.connect("scroll-event", self.on_scroll)
+        self.expanding_container.connect("enter-notify-event", self.on_hover_enter)
+        self.expanding_container.connect("leave-notify-event", self.on_hover_leave)
+        self.add(self.expanding_container)
         self.add_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK)
+        
+        # Hover management like system metrics
+        self.hover_counter = 0
+        self.hide_timer = None
 
         self._updating_from_brightness = False
         self._pending_value = None
@@ -223,13 +267,13 @@ class BrightnessSmall(Box):
         if self.brightness.max_screen == -1:
             return
 
-        step_size = 5
+        step_size = 2
         current_brightness = self.brightness.screen_brightness
         
         if event.direction == Gdk.ScrollDirection.SMOOTH:
-            # Smooth scrolling (trackpad)
+            # Smooth scrolling (trackpad) - use smaller multiplier
             if abs(event.delta_y) > 0:
-                new_brightness = current_brightness - (event.delta_y * step_size)
+                new_brightness = current_brightness - (event.delta_y * 0.5)
                 new_brightness = max(0, min(self.brightness.max_screen, new_brightness))
                 self.brightness.screen_brightness = new_brightness
         elif event.direction == Gdk.ScrollDirection.UP:
@@ -240,6 +284,39 @@ class BrightnessSmall(Box):
             # Scroll down - decrease brightness
             new_brightness = max(0, current_brightness - step_size)
             self.brightness.screen_brightness = new_brightness
+        
+        # Update percentage if visible
+        if self.percentage_revealer.get_child_revealed():
+            brightness = round((self.brightness.screen_brightness / self.brightness.max_screen) * 100)
+            self.percentage_label.set_label(f"{brightness}%")
+
+    def on_hover_enter(self, widget, event):
+        """Show percentage when hovering over the brightness icon"""
+        self.hover_counter += 1
+        if self.hide_timer is not None:
+            GLib.source_remove(self.hide_timer)
+            self.hide_timer = None
+        
+        brightness = round((self.brightness.screen_brightness / self.brightness.max_screen) * 100)
+        self.percentage_label.set_label(f"{brightness}%")
+        self.percentage_revealer.set_reveal_child(True)
+        return False
+
+    def on_hover_leave(self, widget, event):
+        """Hide percentage when leaving the brightness icon"""
+        if self.hover_counter > 0:
+            self.hover_counter -= 1
+        if self.hover_counter == 0:
+            if self.hide_timer is not None:
+                GLib.source_remove(self.hide_timer)
+            self.hide_timer = GLib.timeout_add(500, self.hide_percentage)
+        return False
+
+    def hide_percentage(self):
+        """Hide the percentage display"""
+        self.percentage_revealer.set_reveal_child(False)
+        self.hide_timer = None
+        return False
 
     def on_progress_value_changed(self, widget, pspec):
         if self._updating_from_brightness:
@@ -290,24 +367,74 @@ class VolumeSmall(Box):
         )
         self.vol_label = Label(name="vol-label", markup=icons.vol_high)
         self.vol_button = Button(on_clicked=self.toggle_mute, child=self.vol_label)
-        self.event_box = EventBox(
-            events=["scroll", "smooth-scroll"],
-            child=Overlay(child=self.progress_bar, overlays=self.vol_button),
+        
+        # Percentage label like system metrics
+        self.percentage_label = Label(
+            name="vol-percentage", 
+            label="0%"
         )
+        
+        # Revealer like system metrics
+        self.percentage_revealer = Revealer(
+            name="vol-percentage-revealer",
+            transition_duration=250,
+            transition_type="slide-left",
+            child=self.percentage_label,
+            child_revealed=False,
+        )
+        
+        # Keep original structure - icon stays inside circle
+        self.event_box = EventBox(
+            events=["enter-notify", "leave-notify"],
+            child=Overlay(
+                child=self.progress_bar, 
+                overlays=[self.vol_button]
+            ),
+        )
+        
+        # Create container for the expanding area - this handles scroll events
+        self.expanding_container = EventBox(
+            name="vol-expanding-container",
+            events=["scroll", "smooth-scroll", "enter-notify", "leave-notify"],
+            child=Box(
+                name="vol-main-box",
+                orientation="h",
+                spacing=0,
+                children=[self.event_box, self.percentage_revealer]
+            )
+        )
+        
+        # Ensure the expanding container can receive scroll events
+        self.expanding_container.set_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK)
         
         # Headphone detection
         self._last_device_state = None
         self._headphone_thread = None
         self._headphone_running = False
         
+        # Audio sync for real-time updates
+        self._last_audio_state = None
+        self._audio_sync_thread = None
+        self._audio_sync_running = False
+        
+        # Hover management like system metrics
+        self.hover_counter = 0
+        self.hide_timer = None
+        
         self.audio.connect("notify::speaker", self.on_new_speaker)
         if self.audio.speaker:
             self.audio.speaker.connect("changed", self.on_speaker_changed)
-        self.event_box.connect("scroll-event", self.on_scroll)
-        self.add(self.event_box)
+        self.expanding_container.connect("scroll-event", self.on_scroll)
+        self.expanding_container.connect("enter-notify-event", self.on_hover_enter)
+        self.expanding_container.connect("leave-notify-event", self.on_hover_leave)
+        self.add(self.expanding_container)
         
         # Start headphone detection thread
         self._start_headphone_detection()
+        
+        # Start audio sync thread
+        self._start_audio_sync()
+        
         self.add_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK)
 
     def on_new_speaker(self, *args):
@@ -332,15 +459,16 @@ class VolumeSmall(Box):
         if not self.audio.speaker:
             return
             
-        step_size = 5  # Volume step size
+        step_size = 2  # Volume step size
+        old_volume = self.audio.speaker.volume
         
         if event.direction == Gdk.ScrollDirection.SMOOTH:
-            # Smooth scrolling (trackpad)
+            # Smooth scrolling (trackpad) - use smaller multiplier
             if abs(event.delta_y) > 0:
-                new_volume = self.audio.speaker.volume - (event.delta_y * step_size)
+                new_volume = self.audio.speaker.volume - (event.delta_y * 0.5)
                 self.audio.speaker.volume = max(0, min(100, new_volume))
             if abs(event.delta_x) > 0:
-                new_volume = self.audio.speaker.volume + (event.delta_x * step_size)
+                new_volume = self.audio.speaker.volume + (event.delta_x * 0.5)
                 self.audio.speaker.volume = max(0, min(100, new_volume))
         elif event.direction == Gdk.ScrollDirection.UP:
             # Scroll up - increase volume
@@ -350,6 +478,64 @@ class VolumeSmall(Box):
             # Scroll down - decrease volume
             new_volume = max(0, self.audio.speaker.volume - step_size)
             self.audio.speaker.volume = new_volume
+        
+        # Update UI immediately and efficiently
+        if old_volume != self.audio.speaker.volume:
+            self._update_ui_immediately()
+            # Update percentage if visible
+            if self.percentage_revealer.get_child_revealed():
+                volume = round(self.audio.speaker.volume)
+                self.percentage_label.set_label(f"{volume}%")
+
+    def on_hover_enter(self, widget, event):
+        """Show percentage when hovering over the volume icon"""
+        self.hover_counter += 1
+        if self.hide_timer is not None:
+            GLib.source_remove(self.hide_timer)
+            self.hide_timer = None
+        
+        if self.audio.speaker:
+            volume = round(self.audio.speaker.volume)
+            self.percentage_label.set_label(f"{volume}%")
+            self.percentage_revealer.set_reveal_child(True)
+        return False
+
+    def on_hover_leave(self, widget, event):
+        """Hide percentage when leaving the volume icon"""
+        if self.hover_counter > 0:
+            self.hover_counter -= 1
+        if self.hover_counter == 0:
+            if self.hide_timer is not None:
+                GLib.source_remove(self.hide_timer)
+            self.hide_timer = GLib.timeout_add(500, self.hide_percentage)
+        return False
+
+    def hide_percentage(self):
+        """Hide the percentage display"""
+        self.percentage_revealer.set_reveal_child(False)
+        self.hide_timer = None
+        return False
+
+    def _update_ui_immediately(self):
+        """Update UI immediately without waiting for sync thread"""
+        if not self.audio.speaker:
+            return
+            
+        try:
+            # Update progress bar
+            self.progress_bar.value = self.audio.speaker.volume / 100
+            
+            # Update tooltip
+            if self.audio.speaker.muted:
+                self.set_tooltip_text("Muted")
+            else:
+                self.set_tooltip_text(f"{round(self.audio.speaker.volume)}%")
+            
+            # Update icon based on current state
+            self._update_volume_icon("speaker")
+            
+        except Exception as e:
+            print(f"Immediate UI update error: {e}")
 
     def _start_headphone_detection(self):
         """Start the headphone detection thread"""
@@ -436,6 +622,79 @@ class VolumeSmall(Box):
 
         # Trigger immediate update
         self._check_headphone_state()
+
+    def _start_audio_sync(self):
+        """Start the audio sync thread"""
+        if self._audio_sync_thread and self._audio_sync_thread.is_alive():
+            return
+            
+        self._audio_sync_running = True
+        self._audio_sync_thread = threading.Thread(target=self._audio_sync_loop, daemon=True)
+        self._audio_sync_thread.start()
+
+    def _audio_sync_loop(self):
+        """Audio sync loop running in background thread"""
+        while self._audio_sync_running:
+            try:
+                self._check_and_sync_audio()
+                time.sleep(0.5)  # Check every 500ms
+            except Exception as e:
+                print(f"Audio sync error: {e}")
+                time.sleep(1)
+
+    def _check_and_sync_audio(self):
+        """Check current audio state and sync if needed"""
+        if not self.audio.speaker:
+            return
+            
+        current_state = {
+            'volume': self.audio.speaker.volume,
+            'muted': self.audio.speaker.muted,
+            'device_type': "speaker"
+        }
+        
+        # Check if state has changed
+        if self._last_audio_state != current_state:
+            self._last_audio_state = current_state.copy()
+            # Update UI in main thread
+            GLib.idle_add(self._update_audio_display, current_state)
+
+    def _update_audio_display(self, audio_state):
+        """Update audio display in main thread"""
+        try:
+            if not self.audio.speaker:
+                return False
+                
+            # Update volume icon and progress bar
+            self._update_volume_icon(audio_state['device_type'])
+            
+            # Update progress bar
+            self.progress_bar.value = audio_state['volume'] / 100
+            
+            # Update tooltip
+            if audio_state['muted']:
+                self.set_tooltip_text("Muted")
+            else:
+                self.set_tooltip_text(f"{round(audio_state['volume'])}%")
+                
+        except Exception as e:
+            print(f"Audio display update error: {e}")
+        
+        return False
+
+    def destroy(self):
+        """Clean up resources when widget is destroyed"""
+        # Stop audio sync thread
+        if self._audio_sync_thread and self._audio_sync_thread.is_alive():
+            self._audio_sync_running = False
+            self._audio_sync_thread.join(timeout=1)
+        
+        # Stop headphone detection thread
+        if self._headphone_thread and self._headphone_thread.is_alive():
+            self._headphone_running = False
+            self._headphone_thread.join(timeout=1)
+        
+        super().destroy()
 
 class MicSmall(Box):
     def __init__(self, **kwargs):
