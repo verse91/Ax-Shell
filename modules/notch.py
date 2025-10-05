@@ -147,6 +147,7 @@ class Notch(Window):
         self.is_hovered = False
         self._prevent_occlusion = False
         self._occlusion_timer_id = None
+        self._forced_occlusion = False
 
         self.icon_resolver = IconResolver()
         self._all_apps = get_desktop_applications()
@@ -452,6 +453,8 @@ class Notch(Window):
     def on_notch_hover_area_enter(self, widget, event):
         """Handle hover enter for the entire notch area"""
         self.is_hovered = True
+        if self._forced_occlusion:
+            return False
         if data.PANEL_THEME == "Notch" and data.BAR_POSITION != "Top":
             self.notch_revealer.set_reveal_child(True)
         return False
@@ -467,7 +470,6 @@ class Notch(Window):
         return False
 
     def close_notch(self):
-        # Update monitor manager state
         if self.monitor_manager:
             self.monitor_manager.set_notch_state(self.monitor_id, False)
             
@@ -482,6 +484,14 @@ class Notch(Window):
         self.stack.set_visible_child(self.compact)
         if data.PANEL_THEME != "Notch":
             self.notch_revealer.set_reveal_child(False)
+
+        if self.bar and not self.bar.get_visible() and data.BAR_POSITION == "Top":
+            if data.BAR_THEME == "Pills":
+                self.set_margin("-40px 0px 0px 0px")
+            elif data.BAR_THEME in ["Dense", "Edge"]:
+                self.set_margin("-46px 0px 0px 0px")
+            else:
+                self.set_margin("-40px 8px 8px 8px")
 
     def open_notch(self, widget_name: str):
         # Debug info for troubleshooting
@@ -705,6 +715,9 @@ class Notch(Window):
             self.bar.revealer_right.set_reveal_child(not hide_bar_revealers)
             self.bar.revealer_left.set_reveal_child(not hide_bar_revealers)
 
+        if self.bar and not self.bar.get_visible() and data.BAR_POSITION == "Top":
+            self.set_margin("0px 8px 8px 8px")
+        
         self._is_notch_open = True
 
     def toggle_hidden(self):
@@ -868,6 +881,22 @@ class Notch(Window):
             self.notch_revealer.set_reveal_child(not is_occluded)
 
         return True
+    
+    def force_occlusion(self):
+        """Force notch to occlusion mode (hidden)."""
+        self._forced_occlusion = True
+        self._prevent_occlusion = False
+        self.notch_revealer.set_reveal_child(False)
+    
+    def restore_from_occlusion(self):
+        """Restore notch from occlusion mode."""
+        import config.data as data
+        self._forced_occlusion = False
+        if data.PANEL_THEME == "Notch":
+            if data.BAR_POSITION == "Top":
+                self.notch_revealer.set_reveal_child(True)
+            else:
+                self._prevent_occlusion = False
 
     def _get_current_window_class(self):
         """Get the class of the currently active window"""

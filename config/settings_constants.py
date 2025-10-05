@@ -55,23 +55,23 @@ DEFAULTS = {
     "wallpapers_dir": WALLPAPERS_DIR_DEFAULT,
     "prefix_restart_inspector": "SUPER CTRL ALT",
     "suffix_restart_inspector": "B",
-    "bar_position": "Top",  # New default position setting
-    "vertical": False,  # Kept for backward compatibility
+    "bar_position": "Top",
+    "vertical": False,
     "centered_bar": False,
-    "datetime_12h_format": False,  # Add this line
+    "datetime_12h_format": False,
     "terminal_command": "kitty -e",
-    "auto_append_hyprland": True,  # Enable auto-append of source string to hyprland.conf
+    "auto_append_hyprland": True,
     "dock_enabled": True,
     "dock_icon_size": 28,
     "dock_always_show": False,
     "bar_workspace_show_number": False,
     "bar_workspace_use_chinese_numerals": False,
-    "bar_hide_special_workspace": True,  # Toggle (Hide/Show) special workspace
+    "bar_hide_special_workspace": True,
     "bar_theme": "Pills",
     "dock_theme": "Pills",
-    "panel_theme": "Notch",  # Default panel theme
-    PANEL_POSITION_KEY: PANEL_POSITION_DEFAULT,  # Default panel position
-    NOTIF_POS_KEY: NOTIF_POS_DEFAULT,  # Nueva entrada para la posición de notificaciones
+    "panel_theme": "Notch",
+    PANEL_POSITION_KEY: PANEL_POSITION_DEFAULT,
+    NOTIF_POS_KEY: NOTIF_POS_DEFAULT,
     "bar_button_apps_visible": True,
     "bar_systray_visible": True,
     "bar_control_visible": True,
@@ -102,5 +102,5 @@ DEFAULTS = {
     },
     "limited_apps_history": ["Spotify"],
     "history_ignored_apps": ["Hyprshot"],
-    "selected_monitors": [],  # Empty array means show on all monitors
+    "selected_monitors": [],
 }
