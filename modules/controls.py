@@ -224,14 +224,22 @@ class BrightnessSmall(Box):
             return
 
         step_size = 5
-        current_norm = self.progress_bar.value
-        if event.delta_y < 0:
-            new_norm = min(current_norm + (step_size / self.brightness.max_screen), 1)
-        elif event.delta_y > 0:
-            new_norm = max(current_norm - (step_size / self.brightness.max_screen), 0)
-        else:
-            return
-        self.progress_bar.value = new_norm
+        current_brightness = self.brightness.screen_brightness
+        
+        if event.direction == Gdk.ScrollDirection.SMOOTH:
+            # Smooth scrolling (trackpad)
+            if abs(event.delta_y) > 0:
+                new_brightness = current_brightness - (event.delta_y * step_size)
+                new_brightness = max(0, min(self.brightness.max_screen, new_brightness))
+                self.brightness.screen_brightness = new_brightness
+        elif event.direction == Gdk.ScrollDirection.UP:
+            # Scroll up - increase brightness
+            new_brightness = min(self.brightness.max_screen, current_brightness + step_size)
+            self.brightness.screen_brightness = new_brightness
+        elif event.direction == Gdk.ScrollDirection.DOWN:
+            # Scroll down - decrease brightness
+            new_brightness = max(0, current_brightness - step_size)
+            self.brightness.screen_brightness = new_brightness
 
     def on_progress_value_changed(self, widget, pspec):
         if self._updating_from_brightness:
@@ -323,11 +331,25 @@ class VolumeSmall(Box):
     def on_scroll(self, _, event):
         if not self.audio.speaker:
             return
+            
+        step_size = 5  # Volume step size
+        
         if event.direction == Gdk.ScrollDirection.SMOOTH:
+            # Smooth scrolling (trackpad)
             if abs(event.delta_y) > 0:
-                self.audio.speaker.volume -= event.delta_y
+                new_volume = self.audio.speaker.volume - (event.delta_y * step_size)
+                self.audio.speaker.volume = max(0, min(100, new_volume))
             if abs(event.delta_x) > 0:
-                self.audio.speaker.volume += event.delta_x
+                new_volume = self.audio.speaker.volume + (event.delta_x * step_size)
+                self.audio.speaker.volume = max(0, min(100, new_volume))
+        elif event.direction == Gdk.ScrollDirection.UP:
+            # Scroll up - increase volume
+            new_volume = min(100, self.audio.speaker.volume + step_size)
+            self.audio.speaker.volume = new_volume
+        elif event.direction == Gdk.ScrollDirection.DOWN:
+            # Scroll down - decrease volume
+            new_volume = max(0, self.audio.speaker.volume - step_size)
+            self.audio.speaker.volume = new_volume
 
     def _start_headphone_detection(self):
         """Start the headphone detection thread"""
