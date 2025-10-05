@@ -32,7 +32,9 @@ class MetricsProvider:
         self.gpu = []
         self.cpu = 0.0
         self.mem = 0.0
+        self.mem_total = 0.0
         self.disk = []
+        self.disk_total = []
 
         self.upower = UPowerManager()
         self.display_device = self.upower.get_display_device()
@@ -47,8 +49,17 @@ class MetricsProvider:
 
     def _update(self):
         self.cpu = psutil.cpu_percent(interval=0)
-        self.mem = psutil.virtual_memory().percent
-        self.disk = [psutil.disk_usage(path).percent for path in data.BAR_METRICS_DISKS]
+        # Get memory info in bytes
+        mem_info = psutil.virtual_memory()
+        self.mem = mem_info.used / (1024**3)  # Convert to GB
+        self.mem_total = mem_info.total / (1024**3)  # Total memory in GB
+        # Get disk info in bytes
+        self.disk = []
+        self.disk_total = []
+        for path in data.BAR_METRICS_DISKS:
+            disk_info = psutil.disk_usage(path)
+            self.disk.append(disk_info.used / (1024**3))  # Used space in GB
+            self.disk_total.append(disk_info.total / (1024**3))  # Total space in GB
 
         self._gpu_update_counter += 1
         if self._gpu_update_counter >= 5:  # Update GPU every 10 seconds (5 * 2s)
@@ -130,7 +141,7 @@ class MetricsProvider:
         return False
 
     def get_metrics(self):
-        return (self.cpu, self.mem, self.disk, self.gpu)
+        return (self.cpu, self.mem, self.mem_total, self.disk, self.disk_total, self.gpu)
 
     def get_battery(self):
         return (self.bat_percent, self.bat_charging, self.bat_time)
@@ -228,18 +239,16 @@ class Metrics(Box):
         GLib.timeout_add_seconds(2, self.update_status)
 
     def update_status(self):
-        cpu, mem, disks, gpus = shared_provider.get_metrics()
+        cpu, mem, mem_total, disks, disk_totals, gpus = shared_provider.get_metrics()
 
         if self.cpu:
             self.cpu.usage.value = cpu / 100.0
         if self.ram:
-            self.ram.usage.value = mem / 100.0
+            self.ram.usage.value = mem / mem_total
         for i, disk in enumerate(self.disk):
-
-            if i < len(disks):
-                disk.usage.value = disks[i] / 100.0
+            if i < len(disks) and i < len(disk_totals):
+                disk.usage.value = disks[i] / disk_totals[i]
         for i, gpu in enumerate(self.gpu):
-
             if i < len(gpus):
                 gpu.usage.value = gpus[i] / 100.0
         return True
@@ -327,9 +336,9 @@ class MetricsSmall(Button):
         self.hide_timer = None
         self.hover_counter = 0
 
-    def _format_percentage(self, value: int) -> str:
-        """Formato natural del porcentaje sin forzar ancho fijo."""
-        return f"{value}%"
+    def _format_gb(self, value: float) -> str:
+        """Format value as GB with 1 decimal place."""
+        return f"{value:.1f}GB"
 
     def on_mouse_enter(self, widget, event):
         if not data.VERTICAL:
@@ -368,24 +377,22 @@ class MetricsSmall(Button):
             return False
 
     def update_metrics(self):
-        cpu, mem, disks, gpus = shared_provider.get_metrics()
+        cpu, mem, mem_total, disks, disk_totals, gpus = shared_provider.get_metrics()
 
         if self.cpu:
             self.cpu.circle.set_value(cpu / 100.0)
-            self.cpu.level.set_label(self._format_percentage(int(cpu)))
+            self.cpu.level.set_label(f"{cpu:.1f}%")
         if self.ram:
-            self.ram.circle.set_value(mem / 100.0)
-            self.ram.level.set_label(self._format_percentage(int(mem)))
+            self.ram.circle.set_value(mem / mem_total)
+            self.ram.level.set_label(self._format_gb(mem))
         for i, disk in enumerate(self.disk):
-
-            if i < len(disks):
-                disk.circle.set_value(disks[i] / 100.0)
-                disk.level.set_label(self._format_percentage(int(disks[i])))
+            if i < len(disks) and i < len(disk_totals):
+                disk.circle.set_value(disks[i] / disk_totals[i])
+                disk.level.set_label(self._format_gb(disks[i]))
         for i, gpu in enumerate(self.gpu):
-
             if i < len(gpus):
                 gpu.circle.set_value(gpus[i] / 100.0)
-                gpu.level.set_label(self._format_percentage(int(gpus[i])))
+                gpu.level.set_label(f"{gpus[i]:.1f}%")
 
         tooltip_metrics = []
         if self.disk: tooltip_metrics.extend(self.disk)

@@ -275,6 +275,7 @@ class Bar(Window):
         )
 
         self.rev_left = [
+            self.date_time,
             self.weather,
             self.sysprofiles,
             self.network,
@@ -312,7 +313,6 @@ class Bar(Window):
             self.systray,
             self.button_tools,
             self.language,
-            self.date_time,
             self.button_power,
         ]
 
