@@ -177,6 +177,55 @@ class GlobalKeybindHandler:
             return []
         
         return self._monitor_manager.get_monitors()
+    
+    def toggle_bar(self) -> bool:
+        """
+        Toggle bar visibility and force notch/dock to occlusion mode.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self._monitor_manager:
+            return False
+        
+        focused_monitor_id = self._monitor_manager.get_focused_monitor_id()
+        
+        bar = self._monitor_manager.get_focused_instance('bar')
+        notch = self._monitor_manager.get_focused_instance('notch')
+        
+        if bar and notch:
+            try:
+                current_visibility = bar.get_visible()
+                bar.set_visible(not current_visibility)
+                
+                if not current_visibility:
+                    # Bar is being shown - restore from occlusion
+                    notch.restore_from_occlusion()
+                    # Also restore docks on all monitors
+                    try:
+                        from modules.dock import Dock
+                        for dock_instance in Dock._instances:
+                            if hasattr(dock_instance, 'restore_from_occlusion'):
+                                dock_instance.restore_from_occlusion()
+                    except ImportError:
+                        pass
+                else:
+                    # Bar is being hidden - force occlusion
+                    notch.force_occlusion()
+                    # Also force occlusion on docks on all monitors
+                    try:
+                        from modules.dock import Dock
+                        for dock_instance in Dock._instances:
+                            if hasattr(dock_instance, 'force_occlusion'):
+                                dock_instance.force_occlusion()
+                    except ImportError:
+                        pass
+                
+                return True
+            except Exception as e:
+                print(f"GlobalKeybindHandler: Error toggling bar: {e}")
+        
+        return False
 
 
 # Singleton accessor

@@ -146,6 +146,7 @@ class HyprConfGUI(Window):
             ("Emoji Picker", "prefix_emoji", "suffix_emoji"),
             ("Power Menu", "prefix_power", "suffix_power"),
             ("Toggle Caffeine", "prefix_caffeine", "suffix_caffeine"),
+            ("Toggle Bar", "prefix_toggle", "suffix_toggle"),
             ("Reload CSS", "prefix_css", "suffix_css"),
             (
                 "Restart with inspector",
