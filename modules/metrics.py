@@ -100,6 +100,7 @@ class MetricsProvider:
             self.bat_time = 0
         else:
             self.bat_percent = battery['Percentage']
+            # State 1 = charging, State 2 = discharging
             self.bat_charging = battery['State'] == 1
             self.bat_time = battery['TimeToFull'] if self.bat_charging else battery['TimeToEmpty']
 
