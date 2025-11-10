@@ -49,7 +49,7 @@ tooltip_overview = """<b>Overview</b>"""
 class Bar(Window):
     def __init__(self, monitor_id: int = 0, **kwargs):
         self.monitor_id = monitor_id
-        
+
         super().__init__(
             name="bar",
             layer="top",
@@ -197,11 +197,11 @@ class Bar(Window):
 
         # Determine date-time format based on the new setting
         if data.DATETIME_12H_FORMAT:
-            time_format_horizontal = "%I:%M %p"
-            time_format_vertical = "%I\n%M\n%p"
+            time_format_horizontal = "%I:%M:%S %p"
+            time_format_vertical = "%I\n%M\n%S\n%p"
         else:
-            time_format_horizontal = "%H:%M"
-            time_format_vertical = "%H\n%M"
+            time_format_horizontal = "%H:%M:%S"
+            time_format_vertical = "%H\n%M\n%S"
 
         self.date_time = DateTime(
             name="date-time",
@@ -349,7 +349,7 @@ class Bar(Window):
             data.BAR_POSITION == "Bottom"
             or (data.PANEL_THEME == "Panel" and data.BAR_POSITION in ["Top", "Bottom"])
         )
-        
+
         if should_embed_dock:
             if not data.VERTICAL:
                 self.dock_instance = Dock(integrated_mode=True)

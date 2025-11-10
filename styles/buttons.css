@@ -146,7 +146,7 @@
 #night-mode-status,
 #caffeine-status {
   color: var(--surface-bright);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 #network-ssid.disabled,
