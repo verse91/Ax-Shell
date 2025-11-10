@@ -248,6 +248,8 @@ class BrightnessSmall(Button):
         self._pending_value = None
         self._update_source_id = None
         self._debounce_timeout = 100
+        self._scroll_pending_value = None
+        self._scroll_update_source_id = None
         self.hide_timer = None
         self.hover_counter = 0
 
@@ -264,22 +266,36 @@ class BrightnessSmall(Button):
         
         if event.direction == Gdk.ScrollDirection.SMOOTH:
             # Smooth scrolling (trackpad)
-            if abs(event.delta_y) > 0:
-                new_brightness = current_brightness - (event.delta_y * step_size)
-                new_brightness = max(0, min(self.brightness.max_screen, new_brightness))
-                self.brightness.screen_brightness = new_brightness
-                return True
+            if event.delta_y < 0:
+                new_brightness = min(current_brightness + step_size, self.brightness.max_screen)
+            elif event.delta_y > 0:
+                new_brightness = max(current_brightness - step_size, 0)
+            else:
+                return False
         elif event.direction == Gdk.ScrollDirection.UP:
             # Scroll up - increase brightness
-            new_brightness = min(self.brightness.max_screen, current_brightness + step_size)
-            self.brightness.screen_brightness = new_brightness
-            return True
+            new_brightness = min(current_brightness + step_size, self.brightness.max_screen)
         elif event.direction == Gdk.ScrollDirection.DOWN:
             # Scroll down - decrease brightness
-            new_brightness = max(0, current_brightness - step_size)
-            self.brightness.screen_brightness = new_brightness
+            new_brightness = max(current_brightness - step_size, 0)
+        else:
+            return False
+        
+        if new_brightness != current_brightness:
+            # Use debounced update to prevent rapid duplicate calls
+            self._scroll_pending_value = new_brightness
+            if self._scroll_update_source_id is not None:
+                GLib.source_remove(self._scroll_update_source_id)
+            self._scroll_update_source_id = GLib.timeout_add(50, self._update_brightness_from_scroll)
             return True
         
+        return False
+    
+    def _update_brightness_from_scroll(self):
+        if self._scroll_pending_value is not None:
+            self.brightness.screen_brightness = self._scroll_pending_value
+            self._scroll_pending_value = None
+        self._scroll_update_source_id = None
         return False
 
     def on_progress_value_changed(self, widget, pspec):
@@ -300,17 +316,13 @@ class BrightnessSmall(Button):
         return False
 
     def on_mouse_enter(self, widget, event):
-        print(f"Brightness hover ENTER - VERTICAL={data.VERTICAL}")
         if not data.VERTICAL:
             self.hover_counter += 1
             if self.hide_timer is not None:
                 GLib.source_remove(self.hide_timer)
                 self.hide_timer = None
-            print(f"Setting brightness_revealer to True")
             self.brightness_revealer.set_reveal_child(True)
-            print(f"Revealer child_revealed: {self.brightness_revealer.get_reveal_child()}, revealer visible: {self.brightness_revealer.get_visible()}, label visible: {self.brightness_level.get_visible()}")
             return False
-        return False
 
     def on_mouse_leave(self, widget, event):
         if not data.VERTICAL:
@@ -349,6 +361,10 @@ class BrightnessSmall(Button):
     def destroy(self):
         if self._update_source_id is not None:
             GLib.source_remove(self._update_source_id)
+        if self._scroll_update_source_id is not None:
+            GLib.source_remove(self._scroll_update_source_id)
+        if self.hide_timer is not None:
+            GLib.source_remove(self.hide_timer)
         super().destroy()
 
 class VolumeSmall(Button):
@@ -510,17 +526,13 @@ class VolumeSmall(Button):
             GLib.idle_add(self._update_volume_icon, current_state)
     
     def on_mouse_enter(self, widget, event):
-        print(f"Volume hover ENTER - VERTICAL={data.VERTICAL}")
         if not data.VERTICAL:
             self.hover_counter += 1
             if self.hide_timer is not None:
                 GLib.source_remove(self.hide_timer)
                 self.hide_timer = None
-            print(f"Setting vol_revealer to True")
             self.vol_revealer.set_reveal_child(True)
-            print(f"Revealer child_revealed: {self.vol_revealer.get_reveal_child()}, revealer visible: {self.vol_revealer.get_visible()}, label visible: {self.vol_level.get_visible()}")
             return False
-        return False
 
     def on_mouse_leave(self, widget, event):
         if not data.VERTICAL:
