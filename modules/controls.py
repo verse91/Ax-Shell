@@ -238,8 +238,6 @@ class BrightnessSmall(Button):
             child=main_box,
         )
         self.event_box.connect("scroll-event", self.on_scroll)
-        # Also connect scroll to Button to ensure events are received
-        self.connect("scroll-event", self.on_scroll)
         self.add(self.event_box)
         
         # Connect hover events directly to self (Button) - Button widgets handle these naturally
@@ -304,6 +302,7 @@ class BrightnessSmall(Button):
         if self._scroll_pending_value is not None:
             self.brightness.screen_brightness = self._scroll_pending_value
             self._scroll_pending_value = None
+        self._scroll_processing = False
         self._scroll_update_source_id = None
         return False
 
