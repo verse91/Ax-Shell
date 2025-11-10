@@ -238,6 +238,8 @@ class BrightnessSmall(Button):
             child=main_box,
         )
         self.event_box.connect("scroll-event", self.on_scroll)
+        # Also connect scroll to Button to ensure events are received
+        self.connect("scroll-event", self.on_scroll)
         self.add(self.event_box)
         
         # Connect hover events directly to self (Button) - Button widgets handle these naturally
@@ -250,6 +252,7 @@ class BrightnessSmall(Button):
         self._debounce_timeout = 100
         self._scroll_pending_value = None
         self._scroll_update_source_id = None
+        self._scroll_processing = False
         self.hide_timer = None
         self.hover_counter = 0
 
@@ -260,6 +263,10 @@ class BrightnessSmall(Button):
     def on_scroll(self, widget, event):
         if self.brightness.max_screen == -1:
             return False
+        
+        # Prevent duplicate processing if already handling a scroll event
+        if self._scroll_processing:
+            return True
 
         step_size = 5
         current_brightness = self.brightness.screen_brightness
@@ -283,10 +290,12 @@ class BrightnessSmall(Button):
         
         if new_brightness != current_brightness:
             # Use debounced update to prevent rapid duplicate calls
+            self._scroll_processing = True
             self._scroll_pending_value = new_brightness
             if self._scroll_update_source_id is not None:
                 GLib.source_remove(self._scroll_update_source_id)
             self._scroll_update_source_id = GLib.timeout_add(50, self._update_brightness_from_scroll)
+            # Return True to stop event propagation
             return True
         
         return False
