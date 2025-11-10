@@ -268,7 +268,8 @@ class BrightnessSmall(Button):
         if self._scroll_processing:
             return True
 
-        step_size = 5
+        # Calculate step size as 1% of max brightness for more intuitive scrolling
+        step_size = max(1, int(self.brightness.max_screen * 0.01))
         current_brightness = self.brightness.screen_brightness
         
         if event.direction == Gdk.ScrollDirection.SMOOTH:
