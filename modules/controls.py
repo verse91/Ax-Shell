@@ -5,6 +5,7 @@ from fabric.widgets.circularprogressbar import CircularProgressBar
 from fabric.widgets.eventbox import EventBox
 from fabric.widgets.label import Label
 from fabric.widgets.overlay import Overlay
+from fabric.widgets.revealer import Revealer
 from fabric.widgets.scale import Scale
 from gi.repository import Gdk, GLib
 
@@ -185,9 +186,18 @@ class BrightnessSlider(Scale):
             GLib.source_remove(self._update_source_id)
         super().destroy()
 
-class BrightnessSmall(Box):
+class BrightnessSmall(Button):
     def __init__(self, **kwargs):
         super().__init__(name="button-bar-brightness", **kwargs)
+        # Ensure Button can receive scroll and pointer events
+        self.add_events(
+            Gdk.EventMask.SCROLL_MASK | 
+            Gdk.EventMask.SMOOTH_SCROLL_MASK |
+            Gdk.EventMask.ENTER_NOTIFY_MASK |
+            Gdk.EventMask.LEAVE_NOTIFY_MASK |
+            Gdk.EventMask.POINTER_MOTION_MASK
+        )
+        
         self.brightness = Brightness.get_initial()
         if self.brightness.screen_brightness == -1:
             self.destroy()
@@ -199,21 +209,47 @@ class BrightnessSmall(Box):
         )
         self.brightness_label = Label(name="brightness-label", markup=icons.brightness_high)
         self.brightness_button = Button(child=self.brightness_label)
+        self.brightness_level = Label(name="brightness-level", label="0%")
+        self.brightness_revealer = Revealer(
+            name="brightness-revealer",
+            transition_duration=250,
+            transition_type="slide-left",
+            child=self.brightness_level,
+            child_revealed=False,
+        )
+        
+        overlay_box = Overlay(
+            child=self.progress_bar,
+            overlays=self.brightness_button
+        )
+        
+        main_box = Box(
+            name="brightness-box",
+            orientation="h",
+            spacing=0,
+            children=[overlay_box, self.brightness_revealer],
+        )
+        # Ensure the revealer and its child are visible
+        self.brightness_revealer.show_all()
+        
+        # Add scroll event handling to the overlay_box via EventBox
         self.event_box = EventBox(
             events=["scroll", "smooth-scroll"],
-            child=Overlay(
-                child=self.progress_bar,
-                overlays=self.brightness_button
-            ),
+            child=main_box,
         )
         self.event_box.connect("scroll-event", self.on_scroll)
         self.add(self.event_box)
-        self.add_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK)
+        
+        # Connect hover events directly to self (Button) - Button widgets handle these naturally
+        self.connect("enter-notify-event", self.on_mouse_enter)
+        self.connect("leave-notify-event", self.on_mouse_leave)
 
         self._updating_from_brightness = False
         self._pending_value = None
         self._update_source_id = None
         self._debounce_timeout = 100
+        self.hide_timer = None
+        self.hover_counter = 0
 
         self.progress_bar.connect("notify::value", self.on_progress_value_changed)
         self.brightness.connect("screen", self.on_brightness_changed)
@@ -221,7 +257,7 @@ class BrightnessSmall(Box):
 
     def on_scroll(self, widget, event):
         if self.brightness.max_screen == -1:
-            return
+            return False
 
         step_size = 5
         current_brightness = self.brightness.screen_brightness
@@ -232,14 +268,19 @@ class BrightnessSmall(Box):
                 new_brightness = current_brightness - (event.delta_y * step_size)
                 new_brightness = max(0, min(self.brightness.max_screen, new_brightness))
                 self.brightness.screen_brightness = new_brightness
+                return True
         elif event.direction == Gdk.ScrollDirection.UP:
             # Scroll up - increase brightness
             new_brightness = min(self.brightness.max_screen, current_brightness + step_size)
             self.brightness.screen_brightness = new_brightness
+            return True
         elif event.direction == Gdk.ScrollDirection.DOWN:
             # Scroll down - decrease brightness
             new_brightness = max(0, current_brightness - step_size)
             self.brightness.screen_brightness = new_brightness
+            return True
+        
+        return False
 
     def on_progress_value_changed(self, widget, pspec):
         if self._updating_from_brightness:
@@ -258,6 +299,35 @@ class BrightnessSmall(Box):
         self._update_source_id = None
         return False
 
+    def on_mouse_enter(self, widget, event):
+        print(f"Brightness hover ENTER - VERTICAL={data.VERTICAL}")
+        if not data.VERTICAL:
+            self.hover_counter += 1
+            if self.hide_timer is not None:
+                GLib.source_remove(self.hide_timer)
+                self.hide_timer = None
+            print(f"Setting brightness_revealer to True")
+            self.brightness_revealer.set_reveal_child(True)
+            print(f"Revealer child_revealed: {self.brightness_revealer.get_reveal_child()}, revealer visible: {self.brightness_revealer.get_visible()}, label visible: {self.brightness_level.get_visible()}")
+            return False
+        return False
+
+    def on_mouse_leave(self, widget, event):
+        if not data.VERTICAL:
+            if self.hover_counter > 0:
+                self.hover_counter -= 1
+            if self.hover_counter == 0:
+                if self.hide_timer is not None:
+                    GLib.source_remove(self.hide_timer)
+                self.hide_timer = GLib.timeout_add(500, self.hide_revealer)
+            return False
+
+    def hide_revealer(self):
+        if not data.VERTICAL:
+            self.brightness_revealer.set_reveal_child(False)
+            self.hide_timer = None
+            return False
+
     def on_brightness_changed(self, *args):
         if self.brightness.max_screen == -1:
             return
@@ -267,6 +337,7 @@ class BrightnessSmall(Box):
         self._updating_from_brightness = False
 
         brightness_percentage = int(normalized * 100)
+        self.brightness_level.set_label(f"{brightness_percentage}%")
         if brightness_percentage >= 75:
             self.brightness_label.set_markup(icons.brightness_high)
         elif brightness_percentage >= 24:
@@ -280,9 +351,18 @@ class BrightnessSmall(Box):
             GLib.source_remove(self._update_source_id)
         super().destroy()
 
-class VolumeSmall(Box):
+class VolumeSmall(Button):
     def __init__(self, **kwargs):
         super().__init__(name="button-bar-vol", **kwargs)
+        # Ensure Button can receive scroll and pointer events
+        self.add_events(
+            Gdk.EventMask.SCROLL_MASK | 
+            Gdk.EventMask.SMOOTH_SCROLL_MASK |
+            Gdk.EventMask.ENTER_NOTIFY_MASK |
+            Gdk.EventMask.LEAVE_NOTIFY_MASK |
+            Gdk.EventMask.POINTER_MOTION_MASK
+        )
+        
         self.audio = Audio()
         self.progress_bar = CircularProgressBar(
             name="button-volume", size=28, line_width=2,
@@ -290,9 +370,29 @@ class VolumeSmall(Box):
         )
         self.vol_label = Label(name="vol-label", markup=icons.vol_high)
         self.vol_button = Button(on_clicked=self.toggle_mute, child=self.vol_label)
+        self.vol_level = Label(name="vol-level", label="0%", visible=True)
+        self.vol_revealer = Revealer(
+            name="vol-revealer",
+            transition_duration=250,
+            transition_type="slide-left",
+            child=self.vol_level,
+            child_revealed=False,
+            visible=True,
+        )
+        
+        overlay_box = Overlay(child=self.progress_bar, overlays=self.vol_button)
+        
+        main_box = Box(
+            name="vol-box",
+            orientation="h",
+            spacing=0,
+            children=[overlay_box, self.vol_revealer],
+        )
+        
+        # Add scroll event handling via EventBox
         self.event_box = EventBox(
             events=["scroll", "smooth-scroll"],
-            child=Overlay(child=self.progress_bar, overlays=self.vol_button),
+            child=main_box,
         )
         
         # Headphone detection
@@ -303,12 +403,21 @@ class VolumeSmall(Box):
         self.audio.connect("notify::speaker", self.on_new_speaker)
         if self.audio.speaker:
             self.audio.speaker.connect("changed", self.on_speaker_changed)
+            self.on_speaker_changed()
         self.event_box.connect("scroll-event", self.on_scroll)
+        # Also connect scroll to Button to ensure it works
+        self.connect("scroll-event", self.on_scroll)
         self.add(self.event_box)
+        
+        # Connect hover events directly to self (Button) like MetricsSmall does
+        self.connect("enter-notify-event", self.on_mouse_enter)
+        self.connect("leave-notify-event", self.on_mouse_leave)
         
         # Start headphone detection thread
         self._start_headphone_detection()
-        self.add_events(Gdk.EventMask.SCROLL_MASK | Gdk.EventMask.SMOOTH_SCROLL_MASK)
+        
+        self.hide_timer = None
+        self.hover_counter = 0
 
     def on_new_speaker(self, *args):
         if self.audio.speaker:
@@ -330,7 +439,7 @@ class VolumeSmall(Box):
 
     def on_scroll(self, _, event):
         if not self.audio.speaker:
-            return
+            return False
             
         step_size = 5  # Volume step size
         
@@ -339,17 +448,23 @@ class VolumeSmall(Box):
             if abs(event.delta_y) > 0:
                 new_volume = self.audio.speaker.volume - (event.delta_y * step_size)
                 self.audio.speaker.volume = max(0, min(100, new_volume))
+                return True
             if abs(event.delta_x) > 0:
                 new_volume = self.audio.speaker.volume + (event.delta_x * step_size)
                 self.audio.speaker.volume = max(0, min(100, new_volume))
+                return True
         elif event.direction == Gdk.ScrollDirection.UP:
             # Scroll up - increase volume
             new_volume = min(100, self.audio.speaker.volume + step_size)
             self.audio.speaker.volume = new_volume
+            return True
         elif event.direction == Gdk.ScrollDirection.DOWN:
             # Scroll down - decrease volume
             new_volume = max(0, self.audio.speaker.volume - step_size)
             self.audio.speaker.volume = new_volume
+            return True
+        
+        return False
 
     def _start_headphone_detection(self):
         """Start the headphone detection thread"""
@@ -394,6 +509,35 @@ class VolumeSmall(Box):
             self._last_device_state = current_state
             GLib.idle_add(self._update_volume_icon, current_state)
     
+    def on_mouse_enter(self, widget, event):
+        print(f"Volume hover ENTER - VERTICAL={data.VERTICAL}")
+        if not data.VERTICAL:
+            self.hover_counter += 1
+            if self.hide_timer is not None:
+                GLib.source_remove(self.hide_timer)
+                self.hide_timer = None
+            print(f"Setting vol_revealer to True")
+            self.vol_revealer.set_reveal_child(True)
+            print(f"Revealer child_revealed: {self.vol_revealer.get_reveal_child()}, revealer visible: {self.vol_revealer.get_visible()}, label visible: {self.vol_level.get_visible()}")
+            return False
+        return False
+
+    def on_mouse_leave(self, widget, event):
+        if not data.VERTICAL:
+            if self.hover_counter > 0:
+                self.hover_counter -= 1
+            if self.hover_counter == 0:
+                if self.hide_timer is not None:
+                    GLib.source_remove(self.hide_timer)
+                self.hide_timer = GLib.timeout_add(500, self.hide_revealer)
+            return False
+
+    def hide_revealer(self):
+        if not data.VERTICAL:
+            self.vol_revealer.set_reveal_child(False)
+            self.hide_timer = None
+            return False
+
     def _update_volume_icon(self, device_state):
         """Update volume icon based on device state"""
         if not self.audio.speaker:
@@ -406,17 +550,20 @@ class VolumeSmall(Box):
             self.vol_label.set_markup(icons.vol_mute)
             self.progress_bar.add_style_class("muted")
             self.vol_label.add_style_class("muted")
+            self.vol_level.set_label("Muted")
             self.set_tooltip_text("Muted")
         else:
             # When not muted, show appropriate icon based on device type
             self.progress_bar.remove_style_class("muted")
             self.vol_label.remove_style_class("muted")
             
+            volume = round(self.audio.speaker.volume)
+            self.vol_level.set_label(f"{volume}%")
+            
             if device_state == "headphones":
                 self.vol_label.set_markup(icons.headphones)
             else:
                 # Show volume level icon for speakers
-                volume = self.audio.speaker.volume
                 if volume > 74:
                     self.vol_label.set_markup(icons.vol_high)
                 elif volume > 0:
@@ -424,7 +571,7 @@ class VolumeSmall(Box):
                 else:
                     self.vol_label.set_markup(icons.vol_off)
             
-            self.set_tooltip_text(f"{round(self.audio.speaker.volume)}%")
+            self.set_tooltip_text(f"{volume}%")
         
         # Update progress bar
         self.progress_bar.value = self.audio.speaker.volume / 100
@@ -432,10 +579,31 @@ class VolumeSmall(Box):
 
     def on_speaker_changed(self, *_):
         if not self.audio.speaker:
+            self.vol_level.set_label("0%")
             return
 
-        # Trigger immediate update
+        # Update volume percentage immediately
+        if self.audio.speaker.muted:
+            self.vol_level.set_label("Muted")
+        else:
+            volume = round(self.audio.speaker.volume)
+            self.vol_level.set_label(f"{volume}%")
+        
+        # Update progress bar
+        self.progress_bar.value = self.audio.speaker.volume / 100
+
+        # Trigger device state check for icon update
         self._check_headphone_state()
+
+    def destroy(self):
+        # Stop headphone detection thread
+        self._headphone_running = False
+        if self._headphone_thread and self._headphone_thread.is_alive():
+            self._headphone_thread.join(timeout=1)
+        
+        if self.hide_timer is not None:
+            GLib.source_remove(self.hide_timer)
+        super().destroy()
 
 class MicSmall(Box):
     def __init__(self, **kwargs):
