@@ -35,21 +35,22 @@ Edge = GtkLayerShell.Edge
 
 
 class WaylandWindow(Window):
-    @Property(
-        Layer,
-        flags="read-write",
-        default_value=Layer.TOP,
-    )
-    def layer(self) -> Layer:  # type: ignore
-        return self._layer  # type: ignore
+    # Use Python's built-in property instead of @Property decorator
+    def get_layer(self) -> int:
+        return int(self._layer) if hasattr(self, '_layer') else int(Layer.TOP)
 
-    @layer.setter
-    def layer(
-        self,
-        value: Literal["background", "bottom", "top", "overlay"] | Layer,
-    ) -> None:
-        self._layer = get_enum_member(Layer, value, default=Layer.TOP)
-        return GtkLayerShell.set_layer(self, self._layer)
+    def set_layer(self, value):
+        # Convert string/enum to Layer enum
+        if isinstance(value, str):
+            layer_value = get_enum_member(Layer, value, default=Layer.TOP)
+        elif isinstance(value, int):
+            layer_value = Layer(value)
+        else:
+            layer_value = value
+        self._layer = layer_value
+        GtkLayerShell.set_layer(self, layer_value)
+
+    layer = property(get_layer, set_layer)
 
     @Property(int, "read-write")
     def monitor(self) -> int:
@@ -104,29 +105,21 @@ class WaylandWindow(Window):
         del region
         return
 
-    @Property(
-        KeyboardMode,
-        "read-write",
-        default_value=KeyboardMode.NONE,
-    )
-    def keyboard_mode(self) -> KeyboardMode:
-        return self._keyboard_mode
+    # Use Python's built-in property instead of @Property decorator
+    def get_keyboard_mode(self) -> int:
+        return int(self._keyboard_mode) if hasattr(self, '_keyboard_mode') else int(KeyboardMode.NONE)
 
-    @keyboard_mode.setter
-    def keyboard_mode(
-        self,
-        value: Literal[
-            "none",
-            "exclusive",
-            "on-demand",
-            "entry-number",
-        ]
-        | KeyboardMode,
-    ):
-        self._keyboard_mode = get_enum_member(
-            KeyboardMode, value, default=KeyboardMode.NONE
-        )
-        return GtkLayerShell.set_keyboard_mode(self, self._keyboard_mode)
+    def set_keyboard_mode(self, value):
+        if isinstance(value, str):
+            mode_value = get_enum_member(KeyboardMode, value, default=KeyboardMode.NONE)
+        elif isinstance(value, int):
+            mode_value = KeyboardMode(value)
+        else:
+            mode_value = value
+        self._keyboard_mode = mode_value
+        GtkLayerShell.set_keyboard_mode(self, mode_value)
+
+    keyboard_mode = property(get_keyboard_mode, set_keyboard_mode)
 
     @Property(tuple[Edge, ...], "read-write")
     def anchor(self):

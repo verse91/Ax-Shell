@@ -1,0 +1,27 @@
+{
+    "pinned_apps": [
+        {
+            "name": "Files",
+            "display_name": "Files",
+            "executable": "nautilus",
+            "command_line": "nautilus --new-window %U",
+            "icon_name": "org.gnome.Nautilus"
+        },
+        {
+            "name": "Ghostty",
+            "display_name": "Ghostty",
+            "window_class": "com.mitchellh.ghostty",
+            "executable": "/usr/bin/ghostty",
+            "command_line": "/usr/bin/ghostty --gtk-single-instance=true",
+            "icon_name": "com.mitchellh.ghostty"
+        },
+        {
+            "name": "Zen Browser",
+            "display_name": "Zen Browser",
+            "window_class": "zen",
+            "executable": "/opt/zen-browser-bin/zen-bin",
+            "command_line": "/opt/zen-browser-bin/zen-bin %u",
+            "icon_name": "zen-browser"
+        }
+    ]
+}
