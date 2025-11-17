@@ -1,3 +1,10 @@
+# ⚠️ PLEASE USE STABLE V2 BRANCH
+```
+git switch stable-v2
+```
+
+
+
 <p align="center">
 <a href="https://github.com/Axenide/Ax-Shell">
   <img src="assets/cover.png">
